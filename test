@@ -1,0 +1,814 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#070b12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>AI Robot Beyni</title>
+<style>
+  :root{
+    --bg:#070b12;
+    --card:rgba(255,255,255,.045);
+    --card-2:rgba(255,255,255,.07);
+    --border:rgba(255,255,255,.09);
+    --cyan:#22d3ee;
+    --cyan-soft:rgba(34,211,238,.16);
+    --cyan-glow:rgba(34,211,238,.45);
+    --green:#34d399;
+    --red:#fb5e6b;
+    --amber:#fbbf24;
+    --purple:#c084fc;
+    --text:#e8eef6;
+    --muted:#8194ab;
+    --r:18px;
+    --safe-t:env(safe-area-inset-top,0px);
+    --safe-b:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; margin:0;}
+  body{
+    background:
+      radial-gradient(110% 70% at 50% -8%, #14283f 0%, transparent 55%),
+      radial-gradient(90% 60% at 100% 100%, #0b1b2a 0%, transparent 50%),
+      var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    height:100dvh; overflow:hidden; user-select:none;
+  }
+
+  /* ---------- Ekran sistemi ---------- */
+  .screen{ display:none; flex-direction:column; height:100dvh; width:100%;
+           padding-top:var(--safe-t); padding-bottom:var(--safe-b); }
+  .screen.active{ display:flex; animation:fade .35s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+
+  /* ---------- Ortak ---------- */
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand .logo{ width:40px; height:40px; border-radius:12px; display:grid; place-items:center;
+    background:linear-gradient(145deg,#22d3ee,#0e7490); box-shadow:0 6px 22px rgba(34,211,238,.35); font-size:22px; }
+  .brand h1{ font-size:17px; margin:0; letter-spacing:.3px; }
+  .brand p{ margin:0; font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; }
+
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:var(--r);
+         backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+
+  .field{ position:relative; margin-bottom:12px; }
+  .field label{ position:absolute; top:10px; left:16px; font-size:10px; letter-spacing:1px;
+    text-transform:uppercase; color:var(--muted); }
+  .field input{ width:100%; padding:26px 16px 12px; background:rgba(0,0,0,.25);
+    border:1px solid var(--border); border-radius:14px; color:var(--text); font-size:15px; outline:none;
+    transition:border-color .2s, box-shadow .2s; }
+  .field input:focus{ border-color:var(--cyan); box-shadow:0 0 0 3px var(--cyan-soft); }
+
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--muted); display:inline-block;
+        box-shadow:0 0 0 0 transparent; transition:.3s; }
+  .dot.on{ background:var(--green); box-shadow:0 0 12px var(--green); }
+  .dot.warn{ background:var(--amber); box-shadow:0 0 12px var(--amber); }
+
+  .btn{ border:none; border-radius:16px; font-weight:700; cursor:pointer; color:#04181d;
+        background:linear-gradient(145deg,#2ee6ff,#0891b2); font-size:16px; padding:16px;
+        box-shadow:0 10px 30px rgba(34,211,238,.3); transition:transform .12s, filter .2s; }
+  .btn:active{ transform:translateY(2px) scale(.99); filter:brightness(1.05); }
+  .icon-btn{ width:44px; height:44px; border-radius:13px; display:grid; place-items:center; font-size:18px;
+    background:var(--card-2); border:1px solid var(--border); color:var(--text); cursor:pointer; }
+  .icon-btn:active{ transform:scale(.94); }
+
+  /* ================= MANUEL / TEST EKRANI ================= */
+  #manual-screen{ overflow-y:auto; }
+  .m-wrap{ width:100%; max-width:440px; margin:0 auto; padding:22px 20px 90px; display:flex; flex-direction:column; gap:18px; }
+  .m-head{ display:flex; align-items:center; justify-content:space-between; }
+
+  .conn{ padding:16px; }
+  .conn-top{ display:flex; align-items:center; gap:8px; margin-bottom:14px; font-size:13px; color:var(--muted); }
+
+  .pad-card{ padding:20px; display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .pad-title{ font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+  .dpad{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
+         gap:12px; width:min(78vw,300px); aspect-ratio:1; }
+  .pad{ border:1px solid var(--border); border-radius:18px; background:var(--card-2); color:var(--cyan);
+        font-size:13px; font-weight:700; display:flex; flex-direction:column; align-items:center; justify-content:center;
+        gap:3px; cursor:pointer; transition:transform .1s, background .15s, box-shadow .15s; }
+  .pad .glyph{ font-size:26px; line-height:1; }
+  .pad:active{ transform:scale(.93); background:var(--cyan-soft); box-shadow:0 0 22px var(--cyan-glow); color:#eafdff; }
+  .pad.up{ grid-area:1/2; } .pad.left{ grid-area:2/1; } .pad.right{ grid-area:2/3; } .pad.down{ grid-area:3/2; }
+  .pad.stop{ grid-area:2/2; color:var(--red); border-color:rgba(251,94,107,.4); }
+  .pad.stop:active{ background:rgba(251,94,107,.18); box-shadow:0 0 22px rgba(251,94,107,.5); }
+
+  .m-status{ text-align:center; font-size:12px; color:var(--muted); min-height:16px; font-variant-numeric:tabular-nums; }
+
+  /* ================= AI EKRANI ================= */
+  #ai-screen{ overflow:hidden; }
+  .ai-bar{ display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--border); }
+  .ai-bar .title{ flex:1; display:flex; align-items:center; gap:8px; font-weight:600; font-size:15px; }
+  .ai-body{ flex:1; overflow-y:auto; padding:18px 16px 18px; display:flex; flex-direction:column; gap:16px; align-items:center; }
+
+  .face{ display:flex; flex-direction:column; align-items:center; gap:14px; padding:6px 0 2px; }
+  .eyes{ display:flex; gap:30px; }
+  .eye{ position:relative; width:56px; height:76px; border-radius:30px;
+    background:radial-gradient(120% 120% at 50% 28%, #bdf6ff, #22d3ee 55%, #0a8bab);
+    box-shadow:0 0 26px var(--cyan-glow), 0 0 64px rgba(34,211,238,.22), inset 0 -10px 16px rgba(2,38,50,.5);
+    animation:blink 5.4s infinite both; }
+  .eye::after{ content:''; position:absolute; top:13px; left:14px; width:15px; height:15px; border-radius:50%;
+    background:rgba(255,255,255,.85); filter:blur(.5px); }
+  .eye:nth-child(2){ animation-delay:.12s; }
+  @keyframes blink{ 0%,92.5%,100%{ transform:scaleY(1);} 96%{ transform:scaleY(.07);} }
+  .eyes.talking .eye{ animation:talk .26s infinite alternate; }
+  @keyframes talk{ from{ transform:scaleY(1);} to{ transform:scaleY(.62);} }
+  .eyes.thinking .eye{ animation:think 1.3s infinite ease-in-out; }
+  .eyes.thinking .eye:nth-child(2){ animation-delay:.18s; }
+  @keyframes think{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
+
+  .status-pill{ font-size:12px; color:var(--muted); background:var(--card); border:1px solid var(--border);
+    padding:7px 14px; border-radius:999px; letter-spacing:.3px; }
+
+  .cam{ position:relative; width:100%; max-width:460px; aspect-ratio:4/3; border-radius:var(--r);
+        overflow:hidden; background:#04070c; border:1px solid var(--border); }
+  .cam video{ width:100%; height:100%; object-fit:cover; display:block; }
+  .cam .tag{ position:absolute; top:10px; left:10px; font-size:10px; letter-spacing:1px; text-transform:uppercase;
+    background:rgba(0,0,0,.45); color:var(--cyan); padding:5px 9px; border-radius:8px; display:flex; align-items:center; gap:6px; }
+  .cam .tag .dot{ width:7px; height:7px; }
+  .cam .cam-ctrls{ position:absolute; bottom:10px; right:10px; display:flex; gap:8px; }
+  .cam .cam-ctrls .icon-btn{ width:40px; height:40px; background:rgba(0,0,0,.5); backdrop-filter:blur(6px); }
+  .cam .off{ position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; color:var(--muted); font-size:13px; text-align:center; padding:20px; }
+  .cam.is-off .off{ display:flex; }
+  .cam.is-off video{ opacity:0; }
+
+  .chat{ width:100%; max-width:460px; display:flex; flex-direction:column; gap:8px; }
+  .msg{ max-width:85%; padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.45; word-wrap:break-word; white-space:pre-wrap; }
+  .msg.user{ align-self:flex-end; background:linear-gradient(145deg,#0e7490,#155e75); color:#eafdff; border-bottom-right-radius:5px; }
+  .msg.ai{ align-self:flex-start; background:var(--card-2); border:1px solid var(--border); border-bottom-left-radius:5px; }
+  .msg.act{ align-self:center; background:rgba(34,211,238,.1); border:1px solid var(--cyan-soft); color:var(--cyan);
+    font-size:12px; font-weight:600; letter-spacing:.5px; padding:6px 12px; border-radius:999px; }
+
+  .dock{ display:flex; align-items:center; gap:10px; padding:12px 14px calc(12px + var(--safe-b));
+         border-top:1px solid var(--border); background:rgba(7,11,18,.6); backdrop-filter:blur(12px); }
+  .dock input{ flex:1; padding:14px 16px; border-radius:14px; background:rgba(0,0,0,.3);
+    border:1px solid var(--border); color:var(--text); font-size:15px; outline:none; }
+  .dock input:focus{ border-color:var(--cyan); }
+  .send{ width:48px; height:48px; border-radius:14px; border:none; background:var(--card-2); color:var(--cyan);
+    font-size:20px; cursor:pointer; display:grid; place-items:center; }
+  .mic{ width:58px; height:58px; border-radius:50%; border:none; cursor:pointer; flex:none;
+    background:var(--card-2); color:var(--muted); font-size:24px; display:grid; place-items:center; transition:transform .12s; }
+  .mic:active{ transform:scale(.92); }
+  .mic.live{ background:linear-gradient(145deg,#fb5e6b,#b91c3c); color:#fff;
+    animation:pulse 1.3s infinite; box-shadow:0 0 0 0 rgba(251,94,107,.5); }
+  @keyframes pulse{ 0%{ box-shadow:0 0 0 0 rgba(251,94,107,.5);} 70%{ box-shadow:0 0 0 16px rgba(251,94,107,0);} 100%{ box-shadow:0 0 0 0 rgba(251,94,107,0);} }
+
+  /* ================= LOG PANELİ ================= */
+  .log-toggle{ position:fixed; left:14px; bottom:calc(14px + var(--safe-b)); z-index:70;
+    width:46px; height:46px; border-radius:50%; border:1px solid var(--border);
+    background:rgba(7,11,18,.82); backdrop-filter:blur(8px); color:var(--amber); font-size:20px;
+    cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.45); }
+  .log-toggle .badge{ position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; padding:0 4px;
+    border-radius:9px; background:var(--red); color:#fff; font-size:10px; font-weight:700;
+    display:none; align-items:center; justify-content:center; }
+  .log-toggle.has-err .badge{ display:flex; }
+  .log-sheet{ position:fixed; left:0; right:0; bottom:0; z-index:80; height:64dvh;
+    background:rgba(8,12,20,.97); backdrop-filter:blur(18px); border-top:1px solid var(--border);
+    border-radius:18px 18px 0 0; transform:translateY(103%); transition:transform .28s ease;
+    display:flex; flex-direction:column; padding-bottom:var(--safe-b); }
+  .log-sheet.open{ transform:none; }
+  .log-head{ display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:12px 14px; border-bottom:1px solid var(--border); font-size:13px; font-weight:600; }
+  .log-head .ttl{ display:flex; align-items:center; gap:8px; }
+  .log-count{ color:var(--muted); font-weight:400; font-size:11px; }
+  .log-actions{ display:flex; gap:6px; }
+  .log-btn{ background:var(--card-2); border:1px solid var(--border); color:var(--text);
+    border-radius:9px; padding:6px 9px; font-size:12px; cursor:pointer; }
+  .log-btn:active{ transform:scale(.95); }
+  .log-box{ flex:1; overflow-y:auto; padding:8px 12px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11px; line-height:1.5; }
+  .logline{ padding:1px 0; color:#aeb9c7; white-space:pre-wrap; word-break:break-word; border-bottom:1px solid rgba(255,255,255,.03); }
+  .logline .tg{ color:var(--muted); }
+  .lv-error{ color:#fb7185; } .lv-warn{ color:#fbbf24; }
+  .lv-recv{ color:#34d399; } .lv-send{ color:#22d3ee; } .lv-act{ color:#c084fc; }
+  .log-foot{ padding:7px 14px; font-size:10px; color:var(--muted); border-top:1px solid var(--border);
+    display:flex; justify-content:space-between; gap:8px; }
+  .log-foot .srv-ok{ color:var(--green); } .log-foot .srv-bad{ color:var(--red); }
+</style>
+</head>
+<body>
+
+<!-- ===================== MANUEL / TEST EKRANI ===================== -->
+<div id="manual-screen" class="screen active">
+  <div class="m-wrap">
+    <div class="m-head">
+      <div class="brand">
+        <div class="logo">🤖</div>
+        <div><h1>AI Robot Beyni</h1><p>Test Paneli</p></div>
+      </div>
+      <span id="connDot" class="dot" title="Bağlantı durumu"></span>
+    </div>
+
+    <div class="card conn">
+      <div class="conn-top"><span id="connDot2" class="dot"></span><span id="connText">IP girilmedi</span></div>
+      <div class="field">
+        <label>Robot IP</label>
+        <input id="tankIp" type="text" inputmode="decimal" placeholder="192.168.1.50" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Gemini API Anahtarı</label>
+        <input id="apiKey" type="password" placeholder="AIza..." autocomplete="off">
+      </div>
+    </div>
+
+    <div class="card pad-card">
+      <div class="pad-title">Hareket Kontrolü</div>
+      <div class="dpad">
+        <button class="pad up"    data-cmd="forward"><span class="glyph">▲</span>İLERİ</button>
+        <button class="pad left"  data-cmd="left"><span class="glyph">◀</span>SOL</button>
+        <button class="pad stop"  data-cmd="stop"><span class="glyph">■</span>DUR</button>
+        <button class="pad right" data-cmd="right"><span class="glyph">▶</span>SAĞ</button>
+        <button class="pad down"  data-cmd="backward"><span class="glyph">▼</span>GERİ</button>
+      </div>
+      <div id="m-status" class="m-status">Hazır.</div>
+    </div>
+
+    <button class="btn" id="goAiBtn">⚡ AI MODUNA GEÇ</button>
+  </div>
+</div>
+
+<!-- ===================== AI EKRANI ===================== -->
+<div id="ai-screen" class="screen">
+  <div class="ai-bar">
+    <button class="icon-btn" id="backBtn" title="Geri">←</button>
+    <div class="title">AI Beyni <span id="aiDot" class="dot"></span></div>
+    <button class="icon-btn" id="camToggle" title="Kamera">📷</button>
+  </div>
+
+  <div class="ai-body">
+    <div class="face">
+      <div class="eyes" id="eyes"><div class="eye"></div><div class="eye"></div></div>
+      <div class="status-pill" id="aiStatus">Hazır</div>
+    </div>
+
+    <div class="cam" id="cam">
+      <span class="tag"><span class="dot on"></span>ROBOTUN GÖZÜ</span>
+      <video id="webcam" autoplay playsinline muted></video>
+      <div class="off">📷<div>Kamera kapalı</div></div>
+      <div class="cam-ctrls">
+        <button class="icon-btn" id="camSwitch" title="Kamerayı çevir">🔄</button>
+        <button class="icon-btn" id="camPower" title="Aç / Kapat">⏻</button>
+      </div>
+    </div>
+
+    <div class="chat" id="chat"></div>
+  </div>
+
+  <div class="dock">
+    <input id="aiText" type="text" placeholder="Yazarak konuş..." autocomplete="off">
+    <button class="send" id="sendBtn">➤</button>
+    <button class="mic" id="micBtn">🎤</button>
+  </div>
+</div>
+
+<!-- ===================== LOG PANELİ ===================== -->
+<button id="logToggle" class="log-toggle" title="Test logu">🐞<span class="badge" id="logBadge">0</span></button>
+<div id="logSheet" class="log-sheet">
+  <div class="log-head">
+    <div class="ttl">🐞 Test Logu <span class="log-count" id="logCount">0 satır</span></div>
+    <div class="log-actions">
+      <button class="log-btn" id="logPause">⏸ Durdur</button>
+      <button class="log-btn" id="logCopy">Kopyala</button>
+      <button class="log-btn" id="logClear">Temizle</button>
+      <button class="log-btn" id="logClose">✕</button>
+    </div>
+  </div>
+  <div id="logBox" class="log-box"></div>
+  <div class="log-foot">
+    <span>Sunucu: <span id="logSrv" class="srv-ok">/tmp/robot_test.log</span></span>
+    <span id="logSrvState">—</span>
+  </div>
+</div>
+
+<script>
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+
+  /* ======================================================================
+     AYAR DÜĞMELERİ — Google'a özel, web ile doğrulanamayan değerler.
+     Canlı testte bir şey tutmazsa SADECE burada düzeltiyoruz.
+     ====================================================================== */
+  const LIVE = {
+    apiVersion: "v1beta",                       // tutmazsa: "v1alpha"
+    model: "gemini-3.1-flash-live-preview",     // kullanıcı verdi
+    voice: "Aoede",                             // Live ön-tanımlı ses adı
+    languageCode: "tr-TR",
+    videoFps: 1,                                // saniyede gönderilen kamera karesi
+    inputSampleRate: 16000,                     // mikrofon → modele (PCM16)
+    outputSampleRate: 24000,                    // modelden → hoparlöre (PCM16)
+  };
+
+  const MOVE_FN = {
+    name: "robotu_hareket_ettir",
+    description: "Robotu fiziksel olarak hareket ettirir. Kullanıcının yönergesi ve kameradan gördüğün doğrultusunda çağır.",
+    parameters: {
+      type: "object",
+      properties: {
+        yon: { type: "string", enum: ["forward","backward","left","right","stop"],
+               description: "Hareket yönü: forward=ileri, backward=geri, left=sol, right=sağ, stop=dur" }
+      },
+      required: ["yon"]
+    }
+  };
+
+  const SYSTEM_PROMPT =
+`Sen mobil bir robotun beynisin. Adın "Robot". Türkçe, kısa ve samimi konuş.
+- Kullanıcıyı DİNLERSİN ve kameradan ortamı GÖRÜRSÜN.
+- Kullanıcının yönergeleri ve gördüklerin doğrultusunda robotu yönlendirirsin.
+- Robotu hareket ettirmek için "robotu_hareket_ettir" fonksiyonunu çağır.
+- Önce tek cümlelik niyetini söyle ("Tamam, ileri gidiyorum"), sonra fonksiyonu çağır.
+- GÜVENLİK: emin değilsen veya engel görürsen "stop" ver ve sor. Tehlikede dur.
+- Sadece hareket gerektiğinde fonksiyon çağır; normal sohbette çağırma.`;
+
+  /* ======================================================================
+     LOGGER — panelde gösterir + console'a yazar + sunucuya (/__log) gönderir
+     ====================================================================== */
+  const Logger = {
+    total:0, errors:0, paused:false, queue:[], srvOk:null,
+    log(level, tag, msg, data){
+      const _d = new Date(), _p = (n,l=2) => String(n).padStart(l,"0");   // yerel saat (sunucuyla aynı)
+      const t = `${_p(_d.getHours())}:${_p(_d.getMinutes())}:${_p(_d.getSeconds())}.${_p(_d.getMilliseconds(),3)}`;
+      const entry = { t, level, tag, msg };
+      if(data !== undefined) entry.data = data;
+      this.queue.push(entry);
+      this.render(entry);
+      this.total++;
+      if(level === "error"){ this.errors++; $("logToggle").classList.add("has-err"); $("logBadge").textContent = this.errors; }
+      const c = level==="error" ? "error" : level==="warn" ? "warn" : "log";
+      try{ console[c](`[${tag}] ${msg}`, data!==undefined ? data : ""); }catch(_){}
+      $("logCount").textContent = this.total + " satır";
+    },
+    render(e){
+      const box = $("logBox"); if(!box) return;
+      const div = document.createElement("div");
+      div.className = "logline lv-" + e.level;
+      let s = e.t + "  " + e.msg;
+      if(e.data !== undefined) s += "  " + safeStr(e.data);
+      div.innerHTML = `<span class="tg">${e.t}</span> <b>${escapeHtml(e.tag)}</b> ${escapeHtml(e.msg)}` +
+                      (e.data !== undefined ? ` <span class="tg">${escapeHtml(safeStr(e.data))}</span>` : "");
+      box.appendChild(div);
+      while(box.childElementCount > 400) box.removeChild(box.firstChild);
+      if(!this.paused) box.scrollTop = box.scrollHeight;
+    },
+    async flush(){
+      if(!this.queue.length) return;
+      const batch = this.queue.splice(0, this.queue.length);
+      try{
+        const r = await fetch("/__log", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(batch) });
+        this.setSrv(r.ok);
+      }catch(e){ this.setSrv(false); }
+    },
+    setSrv(ok){
+      if(ok === this.srvOk) return;
+      this.srvOk = ok;
+      const el = $("logSrvState");
+      el.textContent = ok ? "● yazılıyor" : "● ulaşılamıyor";
+      el.className = ok ? "srv-ok" : "srv-bad";
+    }
+  };
+  function safeStr(d){ if(typeof d === "string") return d; try{ return JSON.stringify(d); }catch(e){ return String(d); } }
+  function escapeHtml(s){ return String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+  // büyük base64 (ses/görüntü) alanlarını kısalt
+  function sanitize(obj){
+    try{ return JSON.parse(JSON.stringify(obj, (k,v) =>
+      (k === "data" && typeof v === "string" && v.length > 48) ? `[${v.length}b base64]` : v)); }
+    catch(e){ return obj; }
+  }
+  const L = (lvl,tag,msg,data) => Logger.log(lvl,tag,msg,data);
+  setInterval(() => Logger.flush(), 1500);
+  window.addEventListener("error", e => L("error","js", e.message, { src:e.filename, line:e.lineno }));
+  window.addEventListener("unhandledrejection", e => L("error","js", "promise reddi: " + (e.reason && e.reason.message || e.reason)));
+
+  /* ---------- Ayar saklama ---------- */
+  const SETTINGS_KEY = "robotBrain.settings";
+  function loadSettings(){
+    try{
+      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+      if(s.ip)  $("tankIp").value = s.ip;
+      if(s.key) $("apiKey").value = s.key;
+    }catch(e){}
+    refreshConn();
+  }
+  function saveSettings(){
+    const data = { ip:$("tankIp").value.trim(), key:$("apiKey").value.trim() };
+    try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(data)); }catch(e){}
+    refreshConn();
+  }
+  function refreshConn(){
+    const ip = $("tankIp").value.trim();
+    const on = ip.length > 0;
+    [$("connDot"), $("connDot2")].forEach(d => d.classList.toggle("on", on));
+    $("connText").textContent = on ? ("Hedef: " + normalizeIp(ip)) : "IP girilmedi";
+  }
+  function normalizeIp(ip){ return ip.startsWith("http") ? ip : "http://" + ip; }
+
+  /* ---------- Ekran geçişi ---------- */
+  function showScreen(name){
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    $(name).classList.add("active");
+  }
+
+  /* ---------- Robot komutu (ESP32 GET — Image hilesi) ---------- */
+  const CMD_LABEL = { forward:"İleri", backward:"Geri", left:"Sol", right:"Sağ", stop:"Dur" };
+  function sendCommand(cmd){
+    const ip = $("tankIp").value.trim();
+    if(!ip){ flashStatus("Önce robot IP'si gir", true); L("warn","robot","IP yok, komut atlandı", { cmd }); return false; }
+    // Robot yalnız kendi yerel ağından erişilir; komutu gönderen cihaz (telefon) o ağda.
+    // Uzaktaki sunucu (Mac) robota ulaşamayacağı için DOĞRUDAN gönderiyoruz (Image hilesi, CORS bypass).
+    // Sayfa HTTPS ise bu istek "mixed content" olur; tarayıcı izin verirse robota ulaşır, engellerse sessizce düşer.
+    const https = location.protocol === "https:";
+    const url = `${normalizeIp(ip)}/${cmd}?t=${Date.now()}`;
+    const img = new Image();
+    img.onload  = () => L("recv","robot","komut yanıtı YÜKLENDİ (robota ulaştı)", { cmd });
+    img.onerror = () => L("warn","robot","onerror — ulaşmış da olabilir engellenmiş de; ROBOTU İZLE", { cmd, https });
+    img.src = url;
+    flashStatus("Komut → " + (CMD_LABEL[cmd] || cmd));
+    L("act","robot","KOMUT " + cmd + (https ? " (direct/HTTPS — mixed content riski)" : " (direct)"), { url });
+    return true;
+  }
+  let statusTimer;
+  function flashStatus(text, warn){
+    const el = $("m-status");
+    el.textContent = text;
+    el.style.color = warn ? "var(--red)" : "var(--cyan)";
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(() => { el.textContent = "Hazır."; el.style.color = "var(--muted)"; }, 1400);
+  }
+
+  /* ---------- Yüz ---------- */
+  function setMood(mood){ $("eyes").className = "eyes" + (mood ? " " + mood : ""); }
+  function setAiStatus(t){ $("aiStatus").textContent = t; }
+
+  /* ---------- Kamera ---------- */
+  let camStream = null, facing = "environment";
+  async function startCamera(){
+    stopCameraStream();
+    try{
+      camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:facing }, audio:false });
+      $("webcam").srcObject = camStream;
+      $("cam").classList.remove("is-off");
+      const tr = camStream.getVideoTracks()[0];
+      L("info","kamera","açıldı", { facing, label: tr && tr.label });
+    }catch(e){
+      $("cam").classList.add("is-off");
+      $("cam").querySelector(".off div").textContent = "Kamera açılamadı";
+      L("error","kamera","açılamadı: " + e.name, { msg:e.message });
+    }
+  }
+  function stopCameraStream(){
+    if(camStream){ camStream.getTracks().forEach(t => t.stop()); camStream = null; L("info","kamera","kapatıldı"); }
+    $("webcam").srcObject = null;
+    $("cam").classList.add("is-off");
+  }
+  function toggleCamera(){
+    if(camStream){ stopCameraStream(); stopVideoFrames(); }
+    else { startCamera().then(() => { if(Live.connected) startVideoFrames(); }); }
+  }
+  async function switchCamera(){
+    facing = (facing === "environment") ? "user" : "environment";
+    L("info","kamera","çevriliyor → " + facing);
+    if(camStream) await startCamera();
+  }
+
+  /* ---------- Sohbet ---------- */
+  function addMessage(sender, text){
+    const d = document.createElement("div");
+    d.className = "msg " + (sender === "user" ? "user" : sender === "act" ? "act" : "ai");
+    d.textContent = text;
+    $("chat").appendChild(d);
+    d.scrollIntoView({ behavior:"smooth", block:"end" });
+    return d;
+  }
+
+  /* ======================================================================
+     LIVE OTURUMU
+     ====================================================================== */
+  const Live = {
+    ws:null, connected:false,
+    micCtx:null, micStream:null, micProc:null, micMuted:true,
+    outCtx:null, outNextTime:0, outSources:[],
+    videoTimer:null, hbTimer:null,
+    stats:{ mic:0, vid:0, aud:0 },
+    userBubble:null, aiBubble:null,
+  };
+
+  function wsUrl(){
+    const key = $("apiKey").value.trim();
+    return `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.${LIVE.apiVersion}` +
+           `.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(key)}`;
+  }
+  function buildSetup(){
+    return { setup:{
+      model: "models/" + LIVE.model,
+      generationConfig:{
+        responseModalities:["AUDIO"],
+        speechConfig:{
+          languageCode: LIVE.languageCode,
+          voiceConfig:{ prebuiltVoiceConfig:{ voiceName: LIVE.voice } }
+        }
+      },
+      systemInstruction:{ parts:[{ text: SYSTEM_PROMPT }] },
+      tools:[{ functionDeclarations:[ MOVE_FN ] }],
+      inputAudioTranscription:{},
+      outputAudioTranscription:{}
+    }};
+  }
+
+  function connectLive(){
+    if(!$("apiKey").value.trim()){ setAiStatus("API anahtarı yok"); return; }
+    setAiStatus("Bağlanıyor…"); setMood("thinking");
+    $("aiDot").className = "dot warn";
+    L("info","ws","bağlanılıyor", { model:LIVE.model, apiVersion:LIVE.apiVersion, voice:LIVE.voice, lang:LIVE.languageCode });
+    let ws;
+    try{ ws = new WebSocket(wsUrl()); }
+    catch(e){ setAiStatus("WS hatası"); L("error","ws","WebSocket kurulamadı: " + e.message); return; }
+    Live.ws = ws;
+    ws.onopen = () => {
+      const setup = buildSetup();
+      ws.send(JSON.stringify(setup));
+      L("send","ws","WS açık → setup gönderildi", sanitize(setup.setup));
+    };
+    ws.onmessage = onLiveMessage;
+    ws.onerror = () => L("error","ws","WebSocket hata olayı (detay onclose'da)");
+    ws.onclose = (e) => {
+      Live.connected = false; setMood(""); $("aiDot").className = "dot";
+      $("micBtn").classList.remove("live");
+      stopMic(); stopVideoFrames(); stopHeartbeat();
+      if(e.code === 1000){ L("info","ws","kapandı (normal)", { code:e.code }); }
+      else { L("error","ws","KAPANDI", { code:e.code, reason:e.reason || "(boş)" }); setAiStatus("Kapandı ("+e.code+") "+(e.reason||"")); }
+    };
+  }
+
+  async function onLiveMessage(ev){
+    let txt;
+    try{ txt = (typeof ev.data === "string") ? ev.data : await ev.data.text(); }
+    catch(e){ L("error","ws","mesaj okunamadı"); return; }
+    let msg; try{ msg = JSON.parse(txt); }catch(e){ L("warn","ws","JSON değil", { ham: txt.slice(0,200) }); return; }
+
+    const type = Object.keys(msg)[0] || "?";
+    if(type !== "serverContent") L("recv","ws", "← " + type, sanitize(msg));
+
+    if(msg.setupComplete){
+      Live.connected = true;
+      $("aiDot").className = "dot on";
+      setMood(""); setAiStatus("Dinliyorum…");
+      L("info","ws","setupComplete ✓ — oturum HAZIR");
+      ensureOutAudio(); startMic();
+      if(camStream) startVideoFrames();
+      startHeartbeat();
+      return;
+    }
+    if(msg.serverContent) handleServerContent(msg.serverContent);
+    if(msg.toolCall)      handleToolCall(msg.toolCall);
+    if(msg.toolCallCancellation) L("warn","tool","iptal", msg.toolCallCancellation);
+    if(msg.goAway){ L("warn","ws","goAway", msg.goAway); setAiStatus("Oturum yenileniyor…"); }
+  }
+
+  function handleServerContent(sc){
+    if(sc.interrupted){ flushAudio(); finalizeTurn(); L("warn","model","barge-in: konuşmam kesildi, ses temizlendi"); }
+    if(sc.inputTranscription && sc.inputTranscription.text){ appendUser(sc.inputTranscription.text); L("recv","sen→", sc.inputTranscription.text); }
+    if(sc.outputTranscription && sc.outputTranscription.text){ appendAi(sc.outputTranscription.text); L("recv","robot→", sc.outputTranscription.text); }
+    if(sc.modelTurn && sc.modelTurn.parts){
+      for(const p of sc.modelTurn.parts){
+        if(p.inlineData && p.inlineData.data && (p.inlineData.mimeType||"").startsWith("audio")){
+          Live.stats.aud++; pushAudio(p.inlineData.data);
+        } else if(p.text){ appendAi(p.text); L("recv","model.text", p.text); }
+      }
+    }
+    if(sc.turnComplete){ finalizeTurn(); L("info","model","tur tamamlandı"); }
+  }
+
+  function handleToolCall(tc){
+    const responses = [];
+    for(const fc of (tc.functionCalls || [])){
+      let result = "ok";
+      L("act","tool","↪ ÇAĞRI " + fc.name, { args: fc.args, id: fc.id });
+      if(fc.name === MOVE_FN.name){
+        const yon = fc.args && fc.args.yon;
+        if(["forward","backward","left","right","stop"].includes(yon)){
+          const ok = sendCommand(yon);
+          addMessage("act", "⚙︎ " + (CMD_LABEL[yon] || yon));
+          if(!ok) result = "ip_yok";
+        } else { result = "gecersiz_yon"; L("warn","tool","geçersiz yön", { yon }); }
+      } else { result = "bilinmeyen_fonksiyon"; }
+      responses.push({ id: fc.id, name: fc.name, response: { result } });
+    }
+    sendJson({ toolResponse:{ functionResponses: responses } });
+    L("send","tool","↩ yanıt gönderildi", responses);
+  }
+
+  function appendUser(t){ if(!Live.userBubble) Live.userBubble = addMessage("user",""); Live.userBubble.textContent += t; Live.userBubble.scrollIntoView({block:"end"}); }
+  function appendAi(t){ if(!Live.aiBubble) Live.aiBubble = addMessage("ai",""); Live.aiBubble.textContent += t; Live.aiBubble.scrollIntoView({block:"end"}); }
+  function finalizeTurn(){ Live.userBubble = null; Live.aiBubble = null; }
+
+  function sendJson(obj){ if(Live.ws && Live.ws.readyState === 1) Live.ws.send(JSON.stringify(obj)); }
+  // realtimeInput alan adı tutmazsa: {audio:{...}} → {mediaChunks:[{mimeType,data}]} olarak değiştir.
+  function sendRealtime(inner){ sendJson({ realtimeInput: inner }); }
+
+  /* ---------- Mikrofon ---------- */
+  async function startMic(){
+    if(Live.micCtx) return;
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext;
+      Live.micCtx = new AC({ sampleRate: LIVE.inputSampleRate });
+      if(Live.micCtx.state === "suspended") await Live.micCtx.resume();
+      Live.micStream = await navigator.mediaDevices.getUserMedia({
+        audio:{ channelCount:1, echoCancellation:true, noiseSuppression:true, autoGainControl:true }
+      });
+      const src = Live.micCtx.createMediaStreamSource(Live.micStream);
+      const proc = Live.micCtx.createScriptProcessor(4096, 1, 1);
+      Live.micProc = proc;
+      src.connect(proc); proc.connect(Live.micCtx.destination);
+      proc.onaudioprocess = (e) => {
+        if(Live.micMuted || !Live.connected || !Live.ws || Live.ws.readyState !== 1) return;
+        let d = e.inputBuffer.getChannelData(0);
+        if(Live.micCtx.sampleRate !== LIVE.inputSampleRate) d = downsample(d, Live.micCtx.sampleRate, LIVE.inputSampleRate);
+        const pcm = floatToPCM16(d);
+        sendRealtime({ audio:{ data: abToB64(pcm.buffer), mimeType:`audio/pcm;rate=${LIVE.inputSampleRate}` } });
+        Live.stats.mic++;
+      };
+      Live.micMuted = false;
+      $("micBtn").classList.add("live");
+      L("info","mic","mikrofon açık", { ctxRate: Live.micCtx.sampleRate, hedef: LIVE.inputSampleRate });
+    }catch(e){ setAiStatus("Mikrofon açılamadı"); L("error","mic","açılamadı: " + e.name, { msg:e.message }); }
+  }
+  function stopMic(){
+    try{ if(Live.micProc) Live.micProc.disconnect(); }catch(e){}
+    if(Live.micStream){ Live.micStream.getTracks().forEach(t => t.stop()); Live.micStream = null; }
+    if(Live.micCtx){ try{ Live.micCtx.close(); }catch(e){} Live.micCtx = null; }
+    Live.micProc = null;
+  }
+  function toggleMic(){
+    if(!Live.connected){ setAiStatus("Henüz bağlı değil"); return; }
+    Live.micMuted = !Live.micMuted;
+    $("micBtn").classList.toggle("live", !Live.micMuted);
+    setAiStatus(Live.micMuted ? "Mikrofon kapalı" : "Dinliyorum…");
+    L("info","mic", Live.micMuted ? "susturuldu" : "açıldı");
+  }
+
+  /* ---------- Model sesi ---------- */
+  function ensureOutAudio(){
+    if(!Live.outCtx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      Live.outCtx = new AC({ sampleRate: LIVE.outputSampleRate });
+      L("info","ses","çıkış bağlamı @" + Live.outCtx.sampleRate + "Hz");
+    }
+    if(Live.outCtx.state === "suspended") Live.outCtx.resume();
+  }
+  function pushAudio(b64){
+    ensureOutAudio();
+    const int16 = b64ToInt16(b64);
+    if(!int16.length) return;
+    const f32 = new Float32Array(int16.length);
+    for(let i=0;i<int16.length;i++) f32[i] = int16[i] / 0x8000;
+    const buf = Live.outCtx.createBuffer(1, f32.length, LIVE.outputSampleRate);
+    buf.copyToChannel(f32, 0);
+    const node = Live.outCtx.createBufferSource();
+    node.buffer = buf; node.connect(Live.outCtx.destination);
+    const now = Live.outCtx.currentTime;
+    if(Live.outNextTime < now) Live.outNextTime = now;
+    node.start(Live.outNextTime); Live.outNextTime += buf.duration;
+    Live.outSources.push(node);
+    setMood("talking");
+    node.onended = () => {
+      Live.outSources = Live.outSources.filter(n => n !== node);
+      if(!Live.outSources.length){ setMood(""); if(Live.connected) setAiStatus("Dinliyorum…"); }
+    };
+  }
+  function flushAudio(){
+    Live.outSources.forEach(n => { try{ n.stop(); }catch(e){} });
+    Live.outSources = []; Live.outNextTime = 0; setMood("");
+  }
+
+  /* ---------- Kamera kareleri ---------- */
+  function startVideoFrames(){
+    if(Live.videoTimer) return;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    L("info","video","kare gönderimi başladı @" + LIVE.videoFps + "fps");
+    Live.videoTimer = setInterval(() => {
+      const v = $("webcam");
+      if(!camStream || !v.videoWidth || !Live.connected) return;
+      const w = 512, h = Math.round(w * v.videoHeight / v.videoWidth) || 384;
+      canvas.width = w; canvas.height = h;
+      ctx.drawImage(v, 0, 0, w, h);
+      const b64 = canvas.toDataURL("image/jpeg", 0.6).split(",")[1];
+      sendRealtime({ video:{ data:b64, mimeType:"image/jpeg" } });
+      Live.stats.vid++;
+    }, Math.round(1000 / LIVE.videoFps));
+  }
+  function stopVideoFrames(){ if(Live.videoTimer){ clearInterval(Live.videoTimer); Live.videoTimer = null; } }
+
+  /* ---------- Akış sayaç heartbeat'i (5sn) ---------- */
+  function startHeartbeat(){
+    if(Live.hbTimer) return;
+    Live.hbTimer = setInterval(() => {
+      const s = Live.stats;
+      if(s.mic || s.vid || s.aud){
+        L("info","akış", `mic↑${s.mic} video↑${s.vid} ses↓${s.aud} (son 5sn)`);
+        s.mic = s.vid = s.aud = 0;
+      }
+    }, 5000);
+  }
+  function stopHeartbeat(){ if(Live.hbTimer){ clearInterval(Live.hbTimer); Live.hbTimer = null; } }
+
+  /* ---------- PCM / base64 ---------- */
+  function floatToPCM16(f32){
+    const out = new Int16Array(f32.length);
+    for(let i=0;i<f32.length;i++){ let s = Math.max(-1, Math.min(1, f32[i])); out[i] = s < 0 ? s*0x8000 : s*0x7fff; }
+    return out;
+  }
+  function downsample(buffer, inRate, outRate){
+    if(outRate === inRate) return buffer;
+    const ratio = inRate / outRate;
+    const newLen = Math.round(buffer.length / ratio);
+    const result = new Float32Array(newLen);
+    for(let i=0;i<newLen;i++){
+      const start = Math.floor(i*ratio), end = Math.min(buffer.length, Math.floor((i+1)*ratio));
+      let sum=0, c=0; for(let j=start;j<end;j++){ sum+=buffer[j]; c++; }
+      result[i] = c ? sum/c : 0;
+    }
+    return result;
+  }
+  function abToB64(buf){
+    const bytes = new Uint8Array(buf); let bin = ""; const chunk = 0x8000;
+    for(let i=0;i<bytes.length;i+=chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
+    return btoa(bin);
+  }
+  function b64ToInt16(b64){
+    const bin = atob(b64); const len = bin.length; const bytes = new Uint8Array(len);
+    for(let i=0;i<len;i++) bytes[i] = bin.charCodeAt(i);
+    return new Int16Array(bytes.buffer, 0, len >> 1);
+  }
+
+  /* ---------- Akış kontrol ---------- */
+  function handleSend(){
+    const t = $("aiText").value.trim();
+    if(!t) return;
+    $("aiText").value = "";
+    addMessage("user", t);
+    finalizeTurn();
+    if(Live.connected){ sendJson({ clientContent:{ turns:[{ role:"user", parts:[{ text:t }] }], turnComplete:true } }); L("send","sen→","(yazı) " + t); }
+    else setAiStatus("Bağlı değil");
+  }
+  async function enterAI(){
+    if(!$("apiKey").value.trim()){ flashStatus("API anahtarı gerekli", true); return; }
+    L("info","app","AI moduna geçiliyor");
+    showScreen("ai-screen");
+    ensureOutAudio();
+    await startCamera();
+    connectLive();
+  }
+  function closeLive(){
+    stopVideoFrames(); stopMic(); stopHeartbeat(); flushAudio();
+    if(Live.ws){ try{ Live.ws.close(1000); }catch(e){} Live.ws = null; }
+    Live.connected = false; Live.outNextTime = 0;
+    $("micBtn").classList.remove("live"); $("aiDot").className = "dot";
+  }
+  function exitAI(){ L("info","app","AI modundan çıkılıyor"); closeLive(); stopCameraStream(); showScreen("manual-screen"); }
+
+  /* ---------- Log paneli kontrolleri ---------- */
+  function initLogPanel(){
+    $("logToggle").addEventListener("click", () => {
+      const open = $("logSheet").classList.toggle("open");
+      if(open){ $("logToggle").classList.remove("has-err"); Logger.errors = 0; $("logBadge").textContent = "0"; }
+    });
+    $("logClose").addEventListener("click", () => $("logSheet").classList.remove("open"));
+    $("logClear").addEventListener("click", () => { $("logBox").innerHTML = ""; });
+    $("logPause").addEventListener("click", () => {
+      Logger.paused = !Logger.paused;
+      $("logPause").textContent = Logger.paused ? "▶ Devam" : "⏸ Durdur";
+    });
+    $("logCopy").addEventListener("click", async () => {
+      const text = Array.from($("logBox").children).map(c => c.textContent).join("\n");
+      try{ await navigator.clipboard.writeText(text); $("logCopy").textContent = "Kopyalandı ✓"; setTimeout(()=>$("logCopy").textContent="Kopyala",1200); }
+      catch(e){ L("warn","log","panoya kopyalanamadı"); }
+    });
+  }
+
+  /* ---------- init ---------- */
+  function init(){
+    loadSettings();
+    initLogPanel();
+    $("tankIp").addEventListener("input", saveSettings);
+    $("apiKey").addEventListener("input", saveSettings);
+    document.querySelectorAll(".pad").forEach(b => b.addEventListener("click", () => sendCommand(b.dataset.cmd)));
+    $("goAiBtn").addEventListener("click", enterAI);
+    $("backBtn").addEventListener("click", exitAI);
+    $("camToggle").addEventListener("click", toggleCamera);
+    $("camPower").addEventListener("click", toggleCamera);
+    $("camSwitch").addEventListener("click", switchCamera);
+    $("sendBtn").addEventListener("click", handleSend);
+    $("micBtn").addEventListener("click", toggleMic);
+    $("aiText").addEventListener("keydown", e => { if(e.key === "Enter") handleSend(); });
+    L("info","app","arayüz hazır", { ua: navigator.userAgent });
+  }
+  init();
+</script>
+</body>
+</html>
