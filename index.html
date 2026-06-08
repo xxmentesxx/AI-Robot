@@ -2,26 +2,29 @@
 <html>
 <body>
     <button id="bleBtn" onclick="connectBLE()">🔵 Robota Bağlan (Bluetooth)</button>
-    <div id="bleStatus">Bağlı değil</div>
-    <div class="dpad">
-        <button onclick="sendBLE('forward')">İLERİ</button>
-        <button onclick="sendBLE('stop')">DUR</button>
+    <div id="status">Bağlı değil</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px;">
+        <button onclick="sendCmd('F')">İLERİ</button>
+        <button onclick="sendCmd('B')">GERİ</button>
+        <button onclick="sendCmd('S')">DUR</button>
     </div>
+
     <script>
-        let bleCharacteristic;
+        let bleChar;
         async function connectBLE() {
-            const device = await navigator.bluetooth.requestDevice({
-                filters: [{ name: 'RobotBeyin' }],
-                optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
-            });
-            const server = await device.gatt.connect();
-            const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
-            bleCharacteristic = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
-            document.getElementById('bleStatus').textContent = "✓ BAĞLI";
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'RobotBeyin' }],
+                    optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
+                bleChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
+                document.getElementById('status').textContent = "✅ BAĞLANDI";
+            } catch(e) { alert("Hata: " + e); }
         }
-        async function sendBLE(cmd) {
-            const map = { "forward":"F", "backward":"B", "left":"L", "right":"R", "stop":"S" };
-            if(bleCharacteristic) await bleCharacteristic.writeValue(new TextEncoder().encode(map[cmd]));
+        async function sendCmd(cmd) {
+            if(bleChar) await bleChar.writeValue(new TextEncoder().encode(cmd));
         }
     </script>
 </body>
