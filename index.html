@@ -8,33 +8,36 @@
   body { background: #000; color: #fff; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; width: 100vw; }
   .screen { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
   #manual-screen { display: flex; }
-  
+
   /* Manuel Panel */
-  .panel-title { color: #0f0; margin-bottom: 20px; text-shadow: 0 0 10px #0f0; }
   .input-box { padding: 12px; width: 80%; max-width: 300px; margin-bottom: 10px; border: 2px solid #0ff; border-radius: 8px; background: #111; color: #fff; text-align: center; font-size: 16px; }
   .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 80%; max-width: 300px; margin-top: 10px; }
-  .ctrl-btn { padding: 15px; background: #222; color: #0f0; border: 2px solid #0f0; border-radius:8px; }
-  .start-ai-btn { padding: 15px 30px; font-size: 16px; background: #0ff; color: #000; border: none; border-radius: 25px; font-weight: bold; margin-top: 20px; }
+  .ctrl-btn { padding: 15px; background: #222; color: #0f0; border: 2px solid #0f0; border-radius:8px; cursor:pointer; }
+  .start-ai-btn { padding: 15px 30px; font-size: 16px; background: #0ff; color: #000; border: none; border-radius: 25px; font-weight: bold; margin-top: 20px; cursor:pointer; }
 
-  /* AI Modu Gözler */
-  #ai-screen { cursor: pointer; }
-  .eyes { display: flex; gap: 50px; pointer-events: none; }
+  /* AI Modu */
+  #ai-screen { justify-content: flex-start; padding-top: 100px; }
+  .eyes { display: flex; gap: 50px; }
   .eye { width: 90px; height: 120px; background: #0ff; border-radius: 50%; box-shadow: 0 0 40px #0ff; transition: all 0.3s; display: flex; align-items: center; justify-content: center; font-size: 60px; }
   .wink { transform: scaleY(0.1) !important; }
   .emoji-mode { background: transparent !important; box-shadow: none !important; border-radius: 0; filter: drop-shadow(0 0 20px #0ff); }
   .talking { animation: talkBlink 0.3s infinite alternate; }
   @keyframes talkBlink { 0% { transform: scaleY(1); } 100% { transform: scaleY(0.7); background: #fff; } }
-  #ai-status { position: absolute; bottom: 30px; color: #555; pointer-events: none; }
+  
+  /* Yeni Metin Kutusu */
+  .ai-input-group { margin-top: 50px; display: flex; width: 80%; max-width: 300px; gap: 5px; }
+  #aiTextInput { flex: 1; padding: 10px; border-radius: 8px; background: #222; color: #fff; border: 1px solid #555; }
+  #sendBtn { padding: 10px; background: #0ff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+  #ai-status { margin-top: 20px; color: #aaa; font-size: 14px; text-align: center; }
   video { display: none; }
 </style>
 </head>
 <body>
 
 <div id="manual-screen" class="screen">
-    <h2 class="panel-title">TEST PANELİ</h2>
+    <h2 style="color:#0f0;">TEST PANELİ</h2>
     <input type="text" id="tankIp" class="input-box" placeholder="Robot IP (Örn: 172.20.10.2)">
     <input type="password" id="apiKey" class="input-box" placeholder="Gemini API Anahtarı">
-    
     <div class="controls">
         <button class="ctrl-btn" onclick="sendCommand('left')">SOL</button>
         <button class="ctrl-btn" onclick="sendCommand('forward')">İLERİ</button>
@@ -42,17 +45,20 @@
         <button class="ctrl-btn" style="grid-column: 1 / span 3; background:#500;" onclick="sendCommand('stop')">DUR</button>
         <button class="ctrl-btn" style="grid-column: 1 / span 3;" onclick="sendCommand('backward')">GERİ</button>
     </div>
-    
     <button class="start-ai-btn" onclick="switchToAI()">AI MODUNA GEÇ</button>
-    <div id="manual-status" style="margin-top:10px;">Hazır.</div>
+    <div id="manual-status" style="margin-top:10px; color:#aaa;">Hazır.</div>
 </div>
 
-<div id="ai-screen" class="screen" onclick="toggleListening()">
-    <div class="eyes">
+<div id="ai-screen" class="screen">
+    <div class="eyes" onclick="toggleListening()">
         <div class="eye" id="leftEye"></div>
         <div class="eye" id="rightEye"></div>
     </div>
-    <div id="ai-status">Dokun ve konuş...</div>
+    <div class="ai-input-group">
+        <input type="text" id="aiTextInput" placeholder="Yazarak konuş...">
+        <button id="sendBtn" onclick="handleTextSend()">GÖNDER</button>
+    </div>
+    <div id="ai-status">Dokun ve konuş veya yazıp gönder.</div>
 </div>
 
 <video id="webcam" autoplay playsinline></video>
@@ -61,50 +67,56 @@
   const leftEye = document.getElementById('leftEye');
   const rightEye = document.getElementById('rightEye');
   const aiStatus = document.getElementById('ai-status');
+  const manualStatus = document.getElementById('manual-status');
   const video = document.getElementById('webcam');
   
   let isMicActive = false;
-  let isBotSpeaking = false;
   let chatHistory = [];
   let cameraStream = null;
   const canvas = document.createElement('canvas');
 
+  // Komut gönderme (Resim hilesi)
   function sendCommand(cmd) {
     let ip = document.getElementById('tankIp').value.trim();
     if (!ip.startsWith('http://')) ip = 'http://' + ip;
-    fetch(`${ip}/${cmd}`, { mode: 'no-cors' }).catch(e => console.log(e));
+    let img = new Image();
+    img.src = `${ip}/${cmd}?t=${new Date().getTime()}`;
+    manualStatus.innerText = "Komut: " + cmd;
   }
 
   async function switchToAI() {
-    if (!document.getElementById('tankIp').value || !document.getElementById('apiKey').value) {
-        alert("IP ve API anahtarını gir!"); return;
-    }
+    if (!document.getElementById('apiKey').value) { alert("API Anahtarı gerekli!"); return; }
     document.getElementById('manual-screen').style.display = 'none';
     document.getElementById('ai-screen').style.display = 'flex';
     cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
     video.srcObject = cameraStream;
   }
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRecognition();
-  recognition.lang = 'tr-TR';
-
-  function toggleListening() {
-    isMicActive = !isMicActive;
-    if (isMicActive) {
-      aiStatus.innerText = "Dinliyor...";
-      recognition.start();
-    } else {
-      aiStatus.innerText = "Dokun ve konuş...";
-      recognition.stop();
+  // Metin girişini işle
+  function handleTextSend() {
+    const text = document.getElementById('aiTextInput').value.trim();
+    if(text) {
+        document.getElementById('aiTextInput').value = "";
+        aiStatus.innerText = "Düşünüyor...";
+        askGemini(text);
     }
   }
 
-  recognition.onresult = async (e) => {
-    const text = e.results[0][0].transcript;
-    aiStatus.innerText = "Düşünüyor...";
-    await askGemini(text);
+  // Sesli komut
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new Recognition();
+  recognition.lang = 'tr-TR';
+  recognition.onresult = (e) => { 
+      const text = e.results[0][0].transcript;
+      aiStatus.innerText = "Düşünüyor...";
+      askGemini(text);
   };
+
+  function toggleListening() {
+    isMicActive = !isMicActive;
+    isMicActive ? recognition.start() : recognition.stop();
+    aiStatus.innerText = isMicActive ? "Dinliyor..." : "Dokun ve konuş...";
+  }
 
   async function askGemini(text) {
     const key = document.getElementById('apiKey').value.trim();
@@ -114,20 +126,26 @@
     
     chatHistory.push({ role: "user", parts: parts });
     
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ contents: chatHistory })
-    });
-    
-    const data = await response.json();
-    const botText = data.candidates[0].content.parts[0].text;
-    chatHistory.push({ role: "model", parts: [{ text: botText }] });
-    
-    const actionMatch = botText.match(/\[ACTION:(.*?)\]/);
-    if(actionMatch) sendCommand(actionMatch[1].trim());
-    
-    applyVisuals(botText);
-    speak(botText);
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ contents: chatHistory })
+        });
+        
+        const data = await response.json();
+        if(data.error) throw new Error(data.error.message);
+        
+        const botText = data.candidates[0].content.parts[0].text;
+        chatHistory.push({ role: "model", parts: [{ text: botText }] });
+        
+        const actionMatch = botText.match(/\[ACTION:(.*?)\]/);
+        if(actionMatch) sendCommand(actionMatch[1].trim());
+        
+        applyVisuals(botText);
+        speak(botText);
+    } catch (e) {
+        aiStatus.innerText = "Hata: " + e.message;
+    }
   }
 
   function captureFrame() {
@@ -148,9 +166,13 @@
 
   function speak(text) {
     const clean = text.replace(/\[.*?\]/g, '');
+    aiStatus.innerText = "Konuşuyor...";
     const utter = new SpeechSynthesisUtterance(clean);
     utter.onstart = () => { leftEye.classList.add('talking'); rightEye.classList.add('talking'); };
-    utter.onend = () => { leftEye.classList.remove('talking'); rightEye.classList.remove('talking'); if(isMicActive) recognition.start(); };
+    utter.onend = () => { 
+        leftEye.classList.remove('talking'); rightEye.classList.remove('talking'); 
+        aiStatus.innerText = "Dokun ve konuş...";
+    };
     window.speechSynthesis.speak(utter);
   }
 </script>
