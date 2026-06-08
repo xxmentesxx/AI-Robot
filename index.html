@@ -1,48 +1,163 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <title>Robot Kontrol Paneli</title>
-    <style>
-        body { background: #111; color: white; display: flex; flex-direction: column; align-items: center; font-family: sans-serif; }
-        .box { width: 90%; max-width: 300px; padding: 15px; margin-top: 20px; border: 1px solid #444; border-radius: 10px; }
-        button { width: 100%; padding: 15px; margin: 5px 0; background: #007bff; border: none; border-radius: 5px; color: white; font-weight: bold; }
-        #console { width: 90%; max-width: 300px; height: 150px; background: #000; color: #0f0; padding: 10px; margin-top: 20px; font-size: 12px; overflow-y: scroll; border: 1px solid #333; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AI Robot Beyni</title>
+<style>
+  body { background: #000; color: #fff; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; }
+  .screen { display: none; flex-direction: column; align-items: center; width: 100%; height: 100%; }
+  #manual-screen { display: flex; overflow-y: auto; }
+  
+  .input-box { padding: 12px; width: 80%; margin-bottom: 10px; border: 2px solid #0ff; border-radius: 8px; background: #111; color: #fff; text-align: center; }
+  .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 80%; }
+  .ctrl-btn { padding: 15px; background: #222; color: #0f0; border: 2px solid #0f0; border-radius:8px; cursor:pointer; }
+  .start-ai-btn { padding: 15px 30px; background: #0ff; color: #000; border: none; border-radius: 25px; margin-top: 20px; font-weight: bold; cursor:pointer; }
+
+  /* AI Ekranı ve Chat Geçmişi */
+  #ai-screen { justify-content: flex-start; padding-top: 20px; }
+  #chat-history { width: 90%; height: 250px; overflow-y: auto; margin-bottom: 10px; font-size: 14px; border: 1px solid #333; padding: 10px; border-radius: 10px; }
+  .msg-user { color: #0ff; text-align: right; margin: 5px 0; }
+  .msg-ai { color: #fff; text-align: left; margin: 5px 0; }
+
+  .eyes { display: flex; gap: 30px; margin-bottom: 10px; }
+  .eye { width: 60px; height: 80px; background: #0ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+  .emoji-mode { background: transparent; box-shadow: none; }
+  .talking { animation: talkBlink 0.3s infinite alternate; }
+  @keyframes talkBlink { 0% { transform: scaleY(1); } 100% { transform: scaleY(0.7); background: #fff; } }
+
+  .ai-input-group { display: flex; width: 90%; gap: 5px; }
+  #aiTextInput { flex: 1; padding: 10px; border-radius: 8px; background: #222; color: #fff; border: 1px solid #555; }
+  #sendBtn { padding: 10px; background: #0ff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+  video { display: none; }
+</style>
 </head>
 <body>
 
-    <div class="box">
-        <input type="text" id="ip" placeholder="Robot IP (örn: 192.168.1.50)" style="width: 100%;">
-        <button onclick="move('forward')">İLERİ GİT</button>
-        <button onclick="move('backward')">GERİ GİT</button>
-        <button onclick="move('stop')" style="background: #dc3545;">DUR</button>
+<div id="manual-screen" class="screen">
+    <h2 style="color:#0f0;">TEST PANELİ</h2>
+    <input type="text" id="tankIp" class="input-box" placeholder="Robot IP">
+    <input type="password" id="apiKey" class="input-box" placeholder="Gemini API Anahtarı">
+    <div class="controls">
+        <button class="ctrl-btn" onclick="sendCommand('left')">SOL</button>
+        <button class="ctrl-btn" onclick="sendCommand('forward')">İLERİ</button>
+        <button class="ctrl-btn" onclick="sendCommand('right')">SAĞ</button>
+        <button class="ctrl-btn" style="grid-column: 1 / span 3; background:#500;" onclick="sendCommand('stop')">DUR</button>
+        <button class="ctrl-btn" style="grid-column: 1 / span 3;" onclick="sendCommand('backward')">GERİ</button>
     </div>
+    <button class="start-ai-btn" onclick="switchToAI()">AI MODUNA GEÇ</button>
+    <div id="manual-status" style="margin-top:10px; color:#aaa;">Hazır.</div>
+</div>
 
-    <div id="console">Loglar buraya düşecek...</div>
+<div id="ai-screen" class="screen">
+    <div class="eyes" onclick="toggleListening()">
+        <div class="eye" id="leftEye"></div>
+        <div class="eye" id="rightEye"></div>
+    </div>
+    <div id="chat-history"></div>
+    <div class="ai-input-group">
+        <input type="text" id="aiTextInput" placeholder="Yazarak konuş...">
+        <button id="sendBtn" onclick="handleTextSend()">GÖNDER</button>
+    </div>
+    <div id="ai-status">Dokun ve konuş veya yazıp gönder.</div>
+</div>
 
-    <script>
-        function log(msg) { 
-            document.getElementById('console').innerHTML += "> " + msg + "<br>"; 
-            document.getElementById('console').scrollTop = 9999;
-        }
+<video id="webcam" autoplay playsinline></video>
 
-        // --- EN KRİTİK KISIM: RESİM HİLESİ (IMAGE HACK) ---
-        // Bu yöntem, tarayıcıların "Mixed Content" engelini by-pass eder.
-        function move(cmd) {
-            let ip = document.getElementById('ip').value.trim();
-            if (!ip) { log("Önce IP gir!"); return; }
-            if (!ip.startsWith('http://')) ip = 'http://' + ip;
-            
-            let url = `${ip}/${cmd}?t=${new Date().getTime()}`;
-            let img = new Image();
-            
-            img.onload = () => log("Başarılı: " + cmd);
-            img.onerror = () => log("İstek gönderildi (resim yüklenemedi): " + cmd);
-            
-            img.src = url;
-            log("Gönderiliyor: " + cmd);
-        }
-    </script>
+<script>
+  const MODEL_NAME = 'gemini-2.0-flash'; 
+  const historyDiv = document.getElementById('chat-history');
+  const aiStatus = document.getElementById('ai-status');
+  const video = document.getElementById('webcam');
+  let isMicActive = false;
+  let chatHistory = [];
+
+  function addMessage(sender, text) {
+      const div = document.createElement('div');
+      div.className = sender === 'user' ? 'msg-user' : 'msg-ai';
+      div.innerText = (sender === 'user' ? 'Sen: ' : 'Robot: ') + text;
+      historyDiv.appendChild(div);
+      historyDiv.scrollTop = historyDiv.scrollHeight;
+  }
+
+  function sendCommand(cmd) {
+    let ip = document.getElementById('tankIp').value.trim();
+    if (!ip.startsWith('http://')) ip = 'http://' + ip;
+    let img = new Image();
+    img.src = `${ip}/${cmd}?t=${new Date().getTime()}`;
+    console.log("Komut: " + cmd);
+  }
+
+  async function switchToAI() {
+    if (!document.getElementById('apiKey').value) { alert("API Anahtarı gerekli!"); return; }
+    document.getElementById('manual-screen').style.display = 'none';
+    document.getElementById('ai-screen').style.display = 'flex';
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+    } catch(e) { aiStatus.innerText = "Kamera hatası!"; }
+  }
+
+  function handleTextSend() {
+    const text = document.getElementById('aiTextInput').value.trim();
+    if(text) {
+        document.getElementById('aiTextInput').value = "";
+        addMessage('user', text);
+        askGemini(text);
+    }
+  }
+
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new Recognition();
+  recognition.lang = 'tr-TR';
+  recognition.onresult = (e) => { 
+      const text = e.results[0][0].transcript;
+      addMessage('user', text);
+      askGemini(text);
+  };
+
+  function toggleListening() {
+    isMicActive = !isMicActive;
+    isMicActive ? recognition.start() : recognition.stop();
+    aiStatus.innerText = isMicActive ? "Dinliyor..." : "Dokun ve konuş...";
+  }
+
+  async function askGemini(text) {
+    const key = document.getElementById('apiKey').value.trim();
+    chatHistory.push({ role: "user", parts: [{ text: text }] });
+    
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${MODEL_NAME}:generateContent?key=${key}`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ contents: chatHistory })
+        });
+        const data = await response.json();
+        if(data.error) throw new Error(data.error.message);
+        
+        const botText = data.candidates[0].content.parts[0].text;
+        chatHistory.push({ role: "model", parts: [{ text: botText }] });
+        
+        addMessage('ai', botText.replace(/\[.*?\]/g, '')); // Komutları gizle
+        
+        const actionMatch = botText.match(/\[ACTION:(.*?)\]/);
+        if(actionMatch) sendCommand(actionMatch[1].trim());
+        
+        speak(botText);
+    } catch (e) {
+        aiStatus.innerText = "Hata: " + e.message;
+    }
+  }
+
+  function speak(text) {
+    const clean = text.replace(/\[.*?\]/g, '');
+    const utter = new SpeechSynthesisUtterance(clean);
+    utter.lang = 'tr-TR';
+    utter.onstart = () => { leftEye.classList.add('talking'); rightEye.classList.add('talking'); };
+    utter.onend = () => { 
+        leftEye.classList.remove('talking'); rightEye.classList.remove('talking'); 
+    };
+    window.speechSynthesis.speak(utter);
+  }
+</script>
 </body>
 </html>
