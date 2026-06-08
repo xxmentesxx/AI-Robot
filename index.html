@@ -11,7 +11,7 @@
   
   .input-box { padding: 12px; width: 80%; margin-bottom: 10px; border: 2px solid #0ff; border-radius: 8px; background: #111; color: #fff; text-align: center; }
   .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 80%; }
-  .ctrl-btn { padding: 15px; background: #222; color: #0f0; border: 2px solid #0f0; border-radius:8px; cursor:pointer; }
+  .ctrl-btn { padding: 15px; background: #222; color: #0f0; border: 2px solid #0f0; border-radius:8px; cursor:pointer; font-weight: bold;}
   .start-ai-btn { padding: 15px 30px; background: #0ff; color: #000; border: none; border-radius: 25px; margin-top: 20px; font-weight: bold; cursor:pointer; }
 
   /* AI Ekranı ve Chat Geçmişi */
@@ -20,15 +20,17 @@
   .msg-user { color: #0ff; text-align: right; margin: 5px 0; }
   .msg-ai { color: #fff; text-align: left; margin: 5px 0; }
 
-  .eyes { display: flex; gap: 30px; margin-bottom: 10px; }
-  .eye { width: 60px; height: 80px; background: #0ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
-  .emoji-mode { background: transparent; box-shadow: none; }
+  /* Göz Animasyonları */
+  .eyes { display: flex; gap: 30px; margin-bottom: 10px; justify-content: center;}
+  .eye { width: 60px; height: 80px; background: #0ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; transition: all 0.3s; }
+  .emoji-mode { background: transparent !important; box-shadow: none !important; border-radius: 0; filter: drop-shadow(0 0 20px #0ff); }
+  .wink { transform: scaleY(0.1) !important; }
   .talking { animation: talkBlink 0.3s infinite alternate; }
-  @keyframes talkBlink { 0% { transform: scaleY(1); } 100% { transform: scaleY(0.7); background: #fff; } }
+  @keyframes talkBlink { 0% { transform: scaleY(1); box-shadow: 0 0 20px #0ff;} 100% { transform: scaleY(0.7); background: #fff; box-shadow: 0 0 40px #fff;} }
 
   .ai-input-group { display: flex; width: 90%; gap: 5px; }
   #aiTextInput { flex: 1; padding: 10px; border-radius: 8px; background: #222; color: #fff; border: 1px solid #555; }
-  #sendBtn { padding: 10px; background: #0ff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+  #sendBtn { padding: 10px; background: #0ff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: #000;}
   video { display: none; }
 </style>
 </head>
@@ -36,13 +38,13 @@
 
 <div id="manual-screen" class="screen">
     <h2 style="color:#0f0;">TEST PANELİ</h2>
-    <input type="text" id="tankIp" class="input-box" placeholder="Robot IP">
+    <input type="text" id="tankIp" class="input-box" placeholder="Robot IP (Örn: 172.20.10.x)">
     <input type="password" id="apiKey" class="input-box" placeholder="Gemini API Anahtarı">
     <div class="controls">
         <button class="ctrl-btn" onclick="sendCommand('left')">SOL</button>
         <button class="ctrl-btn" onclick="sendCommand('forward')">İLERİ</button>
         <button class="ctrl-btn" onclick="sendCommand('right')">SAĞ</button>
-        <button class="ctrl-btn" style="grid-column: 1 / span 3; background:#500;" onclick="sendCommand('stop')">DUR</button>
+        <button class="ctrl-btn" style="grid-column: 1 / span 3; background:#500; color:#fff;" onclick="sendCommand('stop')">DUR</button>
         <button class="ctrl-btn" style="grid-column: 1 / span 3;" onclick="sendCommand('backward')">GERİ</button>
     </div>
     <button class="start-ai-btn" onclick="switchToAI()">AI MODUNA GEÇ</button>
@@ -59,16 +61,19 @@
         <input type="text" id="aiTextInput" placeholder="Yazarak konuş...">
         <button id="sendBtn" onclick="handleTextSend()">GÖNDER</button>
     </div>
-    <div id="ai-status">Dokun ve konuş veya yazıp gönder.</div>
+    <div id="ai-status" style="margin-top: 10px; color: #aaa; font-size: 14px; text-align: center;">Dokun ve konuş veya yazıp gönder.</div>
 </div>
 
 <video id="webcam" autoplay playsinline></video>
 
 <script>
-  const MODEL_NAME = 'gemini-2.0-flash'; 
+  const MODEL_NAME = 'gemini-2.0-flash';
   const historyDiv = document.getElementById('chat-history');
   const aiStatus = document.getElementById('ai-status');
   const video = document.getElementById('webcam');
+  const leftEye = document.getElementById('leftEye');
+  const rightEye = document.getElementById('rightEye');
+  
   let isMicActive = false;
   let chatHistory = [];
 
@@ -80,22 +85,30 @@
       historyDiv.scrollTop = historyDiv.scrollHeight;
   }
 
+  // Motor Komutları (Çalışan Resim Hilesi Modeli)
   function sendCommand(cmd) {
     let ip = document.getElementById('tankIp').value.trim();
+    if (!ip) return;
     if (!ip.startsWith('http://')) ip = 'http://' + ip;
     let img = new Image();
     img.src = `${ip}/${cmd}?t=${new Date().getTime()}`;
-    console.log("Komut: " + cmd);
+    console.log("Motor Komutu Gönderildi: " + cmd);
   }
 
   async function switchToAI() {
     if (!document.getElementById('apiKey').value) { alert("API Anahtarı gerekli!"); return; }
+    
+    // iOS Sesi Uyandırma (Sessizlik kilidini açar)
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+    }
+
     document.getElementById('manual-screen').style.display = 'none';
     document.getElementById('ai-screen').style.display = 'flex';
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         video.srcObject = stream;
-    } catch(e) { aiStatus.innerText = "Kamera hatası!"; }
+    } catch(e) { aiStatus.innerText = "Kamera kapalı."; }
   }
 
   function handleTextSend() {
@@ -108,54 +121,137 @@
   }
 
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new Recognition();
-  recognition.lang = 'tr-TR';
-  recognition.onresult = (e) => { 
-      const text = e.results[0][0].transcript;
-      addMessage('user', text);
-      askGemini(text);
-  };
+  let recognition = null;
+  if (Recognition) {
+      recognition = new Recognition();
+      recognition.lang = 'tr-TR';
+      recognition.onresult = (e) => { 
+          const text = e.results[0][0].transcript;
+          addMessage('user', text);
+          askGemini(text);
+      };
+      recognition.onend = () => {
+          if(isMicActive) recognition.start();
+      };
+  }
 
   function toggleListening() {
+    if(!recognition) { alert("Tarayıcınız ses tanımayı desteklemiyor."); return; }
     isMicActive = !isMicActive;
-    isMicActive ? recognition.start() : recognition.stop();
-    aiStatus.innerText = isMicActive ? "Dinliyor..." : "Dokun ve konuş...";
+    if (isMicActive) {
+        try { recognition.start(); } catch(e){}
+        aiStatus.innerText = "Dinliyor... (Kapatmak için gözlere dokun)";
+        aiStatus.style.color = "#0f0";
+    } else {
+        recognition.stop();
+        aiStatus.innerText = "Gözlere dokun ve konuş veya yazıp gönder.";
+        aiStatus.style.color = "#aaa";
+    }
   }
 
   async function askGemini(text) {
     const key = document.getElementById('apiKey').value.trim();
+    aiStatus.innerText = "Düşünüyor...";
+    aiStatus.style.color = "#0ff";
+
+    // 1. Kullanıcı mesajını ekle
     chatHistory.push({ role: "user", parts: [{ text: text }] });
     
+    // 2. EKSİK OLAN ROBOT TALİMATI BURADA (Bunu demezsek motorları sürmez!)
+    const promptContext = "Sen fiziksel bir robotsun. Çok kısa ve doğal cevap ver. TANKI SÜRMEK İSTERSEN cevabının sonuna [ACTION:forward], [ACTION:backward], [ACTION:left], [ACTION:right] veya [ACTION:stop] ekle. GÖZLERİNİ DEĞİŞTİRMEK İSTERSEN [LEFT:WINK][RIGHT:WINK] gibi ifadeler kullan (NORMAL, WINK veya EMOJİ).";
+
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${MODEL_NAME}:generateContent?key=${key}`, {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ contents: chatHistory })
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ 
+                systemInstruction: { parts: [{ text: promptContext }] },
+                contents: chatHistory 
+            })
         });
+        
         const data = await response.json();
         if(data.error) throw new Error(data.error.message);
         
         const botText = data.candidates[0].content.parts[0].text;
+        
+        // 3. Robotun mesajını geçmişe kaydet
         chatHistory.push({ role: "model", parts: [{ text: botText }] });
         
-        addMessage('ai', botText.replace(/\[.*?\]/g, '')); // Komutları gizle
+        // Göz ve Motor komutlarını metinden gizleyerek ekrana bas
+        const cleanText = botText.replace(/\[.*?\]/g, '').trim();
+        addMessage('ai', cleanText); 
         
+        // 4. MOTORU HAREKET ETTİR
         const actionMatch = botText.match(/\[ACTION:(.*?)\]/);
         if(actionMatch) sendCommand(actionMatch[1].trim());
         
-        speak(botText);
+        // 5. GÖZLERİ DEĞİŞTİR
+        applyVisuals(botText);
+        
+        // 6. SESİ ÇAL VE GÖZLERİ OYNAT
+        speak(cleanText);
+        
     } catch (e) {
         aiStatus.innerText = "Hata: " + e.message;
+        aiStatus.style.color = "#f00";
+    }
+  }
+
+  function applyVisuals(text) {
+    const match = text.match(/\[LEFT:(.*?)\]\[RIGHT:(.*?)\]/);
+    const l = match ? match[1].trim() : 'NORMAL';
+    const r = match ? match[2].trim() : 'NORMAL';
+    
+    leftEye.className = 'eye'; 
+    rightEye.className = 'eye';
+    leftEye.innerText = ''; 
+    rightEye.innerText = '';
+
+    if (l === 'WINK') leftEye.classList.add('wink');
+    else if (l !== 'NORMAL') { leftEye.classList.add('emoji-mode'); leftEye.innerText = l; }
+
+    if (r === 'WINK') rightEye.classList.add('wink');
+    else if (r !== 'NORMAL') { rightEye.classList.add('emoji-mode'); rightEye.innerText = r; }
+    
+    // Wink (Göz Kırpma) efekti varsa 1 saniye sonra normale döndür
+    if(l === 'WINK' || r === 'WINK') {
+        setTimeout(() => {
+            leftEye.classList.remove('wink');
+            rightEye.classList.remove('wink');
+        }, 1000);
     }
   }
 
   function speak(text) {
-    const clean = text.replace(/\[.*?\]/g, '');
-    const utter = new SpeechSynthesisUtterance(clean);
+    if(!text) {
+        aiStatus.innerText = isMicActive ? "Dinliyor..." : "Hazır.";
+        aiStatus.style.color = isMicActive ? "#0f0" : "#aaa";
+        return;
+    }
+
+    aiStatus.innerText = "Konuşuyor...";
+    aiStatus.style.color = "#ff0";
+    
+    const utter = new SpeechSynthesisUtterance(text);
     utter.lang = 'tr-TR';
-    utter.onstart = () => { leftEye.classList.add('talking'); rightEye.classList.add('talking'); };
-    utter.onend = () => { 
-        leftEye.classList.remove('talking'); rightEye.classList.remove('talking'); 
+    
+    // Konuşurken gözler titrer
+    utter.onstart = () => { 
+        leftEye.classList.add('talking'); 
+        rightEye.classList.add('talking'); 
     };
+    
+    // Konuşma bitince gözler durur
+    utter.onend = () => { 
+        leftEye.classList.remove('talking'); 
+        rightEye.classList.remove('talking'); 
+        aiStatus.innerText = isMicActive ? "Dinliyor... (Kapatmak için gözlere dokun)" : "Gözlere dokun ve konuş...";
+        aiStatus.style.color = isMicActive ? "#0f0" : "#aaa";
+    };
+
+    utter.onerror = utter.onend; // Hata olursa asılı kalmasın
+
     window.speechSynthesis.speak(utter);
   }
 </script>
