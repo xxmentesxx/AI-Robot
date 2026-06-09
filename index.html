@@ -1,864 +1,935 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#070b12">
+<meta name="theme-color" content="#050810">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>AI Robot Beyni</title>
+<title>Robot Beyni</title>
 <style>
-  :root{
-    --bg:#070b12;
-    --card:rgba(255,255,255,.045);
-    --card-2:rgba(255,255,255,.07);
-    --border:rgba(255,255,255,.09);
-    --cyan:#22d3ee;
-    --cyan-soft:rgba(34,211,238,.16);
-    --cyan-glow:rgba(34,211,238,.45);
-    --green:#34d399;
-    --red:#fb5e6b;
-    --amber:#fbbf24;
-    --purple:#c084fc;
-    --text:#e8eef6;
-    --muted:#8194ab;
-    --r:18px;
-    --safe-t:env(safe-area-inset-top,0px);
-    --safe-b:env(safe-area-inset-bottom,0px);
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{height:100%; margin:0;}
-  body{
-    background:
-      radial-gradient(110% 70% at 50% -8%, #14283f 0%, transparent 55%),
-      radial-gradient(90% 60% at 100% 100%, #0b1b2a 0%, transparent 50%),
-      var(--bg);
-    color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    height:100dvh; overflow:hidden; user-select:none;
-  }
+/* ============ 1. VARIABLES & RESET ============ */
+:root{
+  --bg:#050810;
+  --bg2:#0a1020;
+  --card:rgba(255,255,255,.04);
+  --card2:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.08);
+  --cyan:#22d3ee;
+  --cyan2:#67e8f9;
+  --cyan-g:rgba(34,211,238,.35);
+  --green:#34d399;
+  --red:#fb5e6b;
+  --amber:#fbbf24;
+  --pink:#fb7185;
+  --text:#e2eaf4;
+  --muted:#6b7f96;
+  --r:16px;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --px:0px; --py:0px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif;
+  height:100dvh;user-select:none;}
 
-  /* ---------- Ekran sistemi ---------- */
-  .screen{ display:none; flex-direction:column; height:100dvh; width:100%;
-           padding-top:var(--safe-t); padding-bottom:var(--safe-b); }
-  .screen.active{ display:flex; animation:fade .35s ease; }
-  @keyframes fade{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+/* ============ 2. SCREEN SYSTEM ============ */
+.screen{display:none;flex-direction:column;height:100dvh;width:100%;
+  padding-top:var(--safe-t);padding-bottom:var(--safe-b);}
+.screen.active{display:flex;animation:fadeIn .4s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-  /* ---------- Ortak ---------- */
-  .brand{ display:flex; align-items:center; gap:12px; }
-  .brand .logo{ width:40px; height:40px; border-radius:12px; display:grid; place-items:center;
-    background:linear-gradient(145deg,#22d3ee,#0e7490); box-shadow:0 6px 22px rgba(34,211,238,.35); font-size:22px; }
-  .brand h1{ font-size:17px; margin:0; letter-spacing:.3px; }
-  .brand p{ margin:0; font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; }
+/* ============ 3. COMMON UI ============ */
+.brand{display:flex;align-items:center;gap:12px;}
+.brand .logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#22d3ee,#0e7490);box-shadow:0 4px 18px var(--cyan-g);font-size:22px;}
+.brand h1{font-size:17px;letter-spacing:.3px;}
+.brand p{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:16px;}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted);display:inline-block;
+  box-shadow:0 0 0 0 transparent;transition:.3s;flex-shrink:0;}
+.dot.on{background:var(--green);box-shadow:0 0 10px var(--green);}
+.dot.warn{background:var(--amber);box-shadow:0 0 10px var(--amber);}
+.dot.off{background:var(--red);box-shadow:0 0 10px var(--red);}
+.btn{border:none;border-radius:14px;font-weight:700;cursor:pointer;color:#04181d;
+  background:linear-gradient(145deg,#2ee6ff,#0891b2);font-size:15px;padding:14px;
+  box-shadow:0 8px 26px var(--cyan-g);transition:transform .1s,filter .15s;width:100%;}
+.btn:active{transform:translateY(2px) scale(.99);filter:brightness(1.05);}
+.ble-btn{color:#fff;background:linear-gradient(145deg,#3b82f6,#1d4ed8);box-shadow:0 8px 26px rgba(59,130,246,.3);}
+.ble-btn.on{background:linear-gradient(145deg,#34d399,#059669);box-shadow:0 8px 26px rgba(52,211,153,.3);}
+.icon-btn{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:17px;
+  background:var(--card2);border:1px solid var(--border);color:var(--text);cursor:pointer;}
+.icon-btn:active{transform:scale(.92);}
+.field{position:relative;margin-top:12px;}
+.field label{position:absolute;top:8px;left:14px;font-size:9px;letter-spacing:1px;
+  text-transform:uppercase;color:var(--muted);pointer-events:none;}
+.field input{width:100%;padding:24px 14px 10px;background:rgba(0,0,0,.3);
+  border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;outline:none;
+  transition:border-color .2s,box-shadow .2s;}
+.field input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.15);}
+.section-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+  margin-bottom:6px;display:flex;align-items:center;gap:6px;}
 
-  .card{ background:var(--card); border:1px solid var(--border); border-radius:var(--r);
-         backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+/* ============ 4. CONTROL PANEL ============ */
+#ctrlScreen{overflow-y:auto;}
+.ctrl-wrap{max-width:440px;margin:0 auto;padding:18px 16px 100px;display:flex;flex-direction:column;gap:14px;}
+.ctrl-header{display:flex;align-items:center;justify-content:space-between;}
+.conn-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:12px;}
+/* Camera preview */
+.cam-box{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;
+  background:#04070c;border:1px solid var(--border);}
+.cam-box video{width:100%;height:100%;object-fit:cover;display:block;}
+.cam-box.off video{opacity:0;}
+.cam-box .cam-off{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  color:var(--muted);font-size:13px;gap:8px;flex-direction:column;}
+.cam-box.off .cam-off{display:flex;}
+.cam-box .cam-tag{position:absolute;top:8px;left:8px;font-size:9px;letter-spacing:1px;text-transform:uppercase;
+  background:rgba(0,0,0,.5);color:var(--cyan);padding:4px 8px;border-radius:7px;display:flex;align-items:center;gap:5px;}
+.cam-box .cam-btns{position:absolute;bottom:8px;right:8px;display:flex;gap:6px;}
+.cam-box .cam-btns button{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);
+  background:rgba(0,0,0,.5);color:var(--text);font-size:15px;cursor:pointer;backdrop-filter:blur(4px);}
+/* Mic test */
+.mic-row{display:flex;align-items:center;gap:10px;}
+.mic-row button{flex-shrink:0;}
+.vu-track{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden;}
+.vu-fill{height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,var(--cyan),var(--green));
+  transition:width 60ms linear;}
+.mic-label{font-size:11px;color:var(--muted);min-width:46px;text-align:right;}
+/* D-Pad */
+.dpad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+  gap:10px;width:min(72vw,280px);aspect-ratio:1;margin:0 auto;}
+.pad{border:1px solid var(--border);border-radius:16px;background:var(--card2);color:var(--cyan);
+  font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;cursor:pointer;transition:transform .1s,background .12s,box-shadow .12s;}
+.pad .gl{font-size:24px;line-height:1;}
+.pad:active{transform:scale(.92);background:rgba(34,211,238,.15);box-shadow:0 0 18px var(--cyan-g);color:#eafdff;}
+.pad.up{grid-area:1/2;}.pad.lt{grid-area:2/1;}.pad.rt{grid-area:2/3;}.pad.dn{grid-area:3/2;}
+.pad.st{grid-area:2/2;color:var(--red);border-color:rgba(251,94,107,.3);}
+.pad.st:active{background:rgba(251,94,107,.15);box-shadow:0 0 18px rgba(251,94,107,.4);}
+.move-status{text-align:center;font-size:11px;color:var(--muted);min-height:14px;margin-top:4px;}
+.btn-ai{margin-top:6px;font-size:17px;padding:18px;
+  background:linear-gradient(145deg,#22d3ee,#6366f1);box-shadow:0 8px 30px rgba(34,211,238,.3);}
 
-  .field{ position:relative; margin-bottom:12px; }
-  .field label{ position:absolute; top:10px; left:16px; font-size:10px; letter-spacing:1px;
-    text-transform:uppercase; color:var(--muted); }
-  .field input{ width:100%; padding:26px 16px 12px; background:rgba(0,0,0,.25);
-    border:1px solid var(--border); border-radius:14px; color:var(--text); font-size:15px; outline:none;
-    transition:border-color .2s, box-shadow .2s; }
-  .field input:focus{ border-color:var(--cyan); box-shadow:0 0 0 3px var(--cyan-soft); }
+/* ============ 5. AI MODE ============ */
+.ai-bg{position:fixed;inset:0;
+  background:radial-gradient(ellipse 120% 90% at 50% 42%,#0c1a30,var(--bg) 68%);z-index:0;}
+.face{position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-content:center;}
+.eyes-wrap{display:flex;align-items:center;gap:clamp(18px,7vw,55px);margin-top:-4vh;}
 
-  .dot{ width:9px; height:9px; border-radius:50%; background:var(--muted); display:inline-block;
-        box-shadow:0 0 0 0 transparent; transition:.3s; }
-  .dot.on{ background:var(--green); box-shadow:0 0 12px var(--green); }
-  .dot.warn{ background:var(--amber); box-shadow:0 0 12px var(--amber); }
+/* ============ 6. EYE SYSTEM ============ */
+.eye{
+  position:relative;
+  --ew:min(36vw,50vh,220px);
+  width:var(--ew); height:calc(var(--ew)*1.32);
+  border-radius:44%;overflow:hidden;
+  box-shadow:
+    0 0 18px rgba(34,211,238,.35),
+    0 0 45px rgba(34,211,238,.18),
+    0 0 90px rgba(34,211,238,.08),
+    0 0 140px rgba(34,211,238,.04);
+  animation:neonPulse 4s ease-in-out infinite;
+  transition:transform .25s ease, box-shadow .5s ease, border-radius .35s ease;
+}
+@media(orientation:landscape){
+  .eye{--ew:min(22vw,55vh,200px);}
+  .eyes-wrap{gap:clamp(24px,8vw,70px);}
+}
+@keyframes neonPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.06)}}
 
-  .btn{ border:none; border-radius:16px; font-weight:700; cursor:pointer; color:#04181d;
-        background:linear-gradient(145deg,#2ee6ff,#0891b2); font-size:16px; padding:16px;
-        box-shadow:0 10px 30px rgba(34,211,238,.3); transition:transform .12s, filter .2s; }
-  .btn:active{ transform:translateY(2px) scale(.99); filter:brightness(1.05); }
-  .ble-btn{ width:100%; color:#fff; background:linear-gradient(145deg,#3b82f6,#1d4ed8); box-shadow:0 10px 30px rgba(59,130,246,.3); }
-  .ble-btn.connected{ background:linear-gradient(145deg,#34d399,#059669); box-shadow:0 10px 30px rgba(52,211,153,.3); }
-  .icon-btn{ width:44px; height:44px; border-radius:13px; display:grid; place-items:center; font-size:18px;
-    background:var(--card-2); border:1px solid var(--border); color:var(--text); cursor:pointer; }
-  .icon-btn:active{ transform:scale(.94); }
+.sclera{position:absolute;inset:0;
+  background:radial-gradient(ellipse 90% 80% at 50% 42%,#e4fbff 0%,#b0ecf5 25%,#3dd8f0 50%,#0e8da5 78%,#065064 100%);}
 
-  /* ================= MANUEL / TEST EKRANI ================= */
-  #manual-screen{ overflow-y:auto; }
-  .m-wrap{ width:100%; max-width:440px; margin:0 auto; padding:22px 20px 90px; display:flex; flex-direction:column; gap:18px; }
-  .m-head{ display:flex; align-items:center; justify-content:space-between; }
+.iris-group{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  transform:translate(var(--px),var(--py));transition:transform .22s cubic-bezier(.25,.46,.45,.94);}
+.iris{width:72%;height:55%;border-radius:50%;position:relative;
+  background:radial-gradient(circle at 42% 38%,#a5f3fc,#22d3ee 32%,#0891b2 58%,#0e7490 80%,#064e5e);
+  box-shadow:0 0 16px rgba(34,211,238,.45),inset 0 0 12px rgba(0,20,40,.3);
+  transition:transform .3s ease, width .3s ease, height .3s ease;}
+.pupil{position:absolute;top:50%;left:50%;width:42%;height:42%;border-radius:50%;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(circle at 44% 38%,#151530,#050510 65%);
+  box-shadow:0 0 8px rgba(0,0,0,.5);
+  transition:width .3s ease, height .3s ease;}
 
-  .conn{ padding:16px; }
-  .conn-top{ display:flex; align-items:center; gap:8px; margin-bottom:14px; font-size:13px; color:var(--muted); }
+/* Highlights — fixed relative to eye, not iris */
+.shine{position:absolute;z-index:3;pointer-events:none;}
+.shine-lg{top:18%;left:22%;width:22%;height:18%;border-radius:50%;
+  background:rgba(255,255,255,.82);filter:blur(1.5px);
+  transform:rotate(-18deg) scaleX(1.3);}
+.shine-sm{bottom:28%;right:24%;width:10%;height:8%;border-radius:50%;
+  background:rgba(255,255,255,.45);filter:blur(1px);}
 
-  .pad-card{ padding:20px; display:flex; flex-direction:column; align-items:center; gap:14px; }
-  .pad-title{ font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
-  .dpad{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
-         gap:12px; width:min(78vw,300px); aspect-ratio:1; }
-  .pad{ border:1px solid var(--border); border-radius:18px; background:var(--card-2); color:var(--cyan);
-        font-size:13px; font-weight:700; display:flex; flex-direction:column; align-items:center; justify-content:center;
-        gap:3px; cursor:pointer; transition:transform .1s, background .15s, box-shadow .15s; }
-  .pad .glyph{ font-size:26px; line-height:1; }
-  .pad:active{ transform:scale(.93); background:var(--cyan-soft); box-shadow:0 0 22px var(--cyan-glow); color:#eafdff; }
-  .pad.up{ grid-area:1/2; } .pad.left{ grid-area:2/1; } .pad.right{ grid-area:2/3; } .pad.down{ grid-area:3/2; }
-  .pad.stop{ grid-area:2/2; color:var(--red); border-color:rgba(251,94,107,.4); }
-  .pad.stop:active{ background:rgba(251,94,107,.18); box-shadow:0 0 22px rgba(251,94,107,.5); }
+/* Icon layer */
+.eye-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:calc(var(--ew)*.7);line-height:1;z-index:4;
+  opacity:0;transform:scale(.4) rotate(-15deg);
+  transition:opacity .28s ease,transform .32s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
+.eye.icon-mode .eye-icon{opacity:1;transform:scale(1) rotate(0deg);}
+.eye.icon-mode .iris-group{opacity:0;transform:scale(.3);transition:opacity .2s,transform .2s;}
+.eye.icon-mode .shine{opacity:0;transition:opacity .15s;}
 
-  .m-status{ text-align:center; font-size:12px; color:var(--muted); min-height:16px; font-variant-numeric:tabular-nums; }
+/* Eyelids */
+.lid{position:absolute;left:-2%;right:-2%;z-index:5;background:var(--bg);
+  transition:height .22s ease,border-radius .22s ease,transform .22s ease;}
+.lid-top{top:-1%;height:0;}
+.lid-btm{bottom:-1%;height:0;}
 
-  /* ================= AI EKRANI ================= */
-  #ai-screen{ overflow:hidden; }
-  .ai-bar{ display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--border); }
-  .ai-bar .title{ flex:1; display:flex; align-items:center; gap:8px; font-weight:600; font-size:15px; }
-  .ai-body{ flex:1; overflow-y:auto; padding:18px 16px 18px; display:flex; flex-direction:column; gap:16px; align-items:center; }
+/* Blink */
+.eye.blink .lid-top{height:102%!important;transition:height .07s ease-in!important;}
 
-  .face{ display:flex; flex-direction:column; align-items:center; gap:14px; padding:6px 0 2px; }
-  .eyes{ display:flex; gap:30px; }
-  .eye{ position:relative; width:56px; height:76px; border-radius:30px;
-    background:radial-gradient(120% 120% at 50% 28%, #bdf6ff, #22d3ee 55%, #0a8bab);
-    box-shadow:0 0 26px var(--cyan-glow), 0 0 64px rgba(34,211,238,.22), inset 0 -10px 16px rgba(2,38,50,.5);
-    animation:blink 5.4s infinite both; }
-  .eye::after{ content:''; position:absolute; top:13px; left:14px; width:15px; height:15px; border-radius:50%;
-    background:rgba(255,255,255,.85); filter:blur(.5px); }
-  .eye:nth-child(2){ animation-delay:.12s; }
-  @keyframes blink{ 0%,92.5%,100%{ transform:scaleY(1);} 96%{ transform:scaleY(.07);} }
-  .eyes.talking .eye{ animation:talk .26s infinite alternate; }
-  @keyframes talk{ from{ transform:scaleY(1);} to{ transform:scaleY(.62);} }
-  .eyes.thinking .eye{ animation:think 1.3s infinite ease-in-out; }
-  .eyes.thinking .eye:nth-child(2){ animation-delay:.18s; }
-  @keyframes think{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
+/* ============ 7. EYE EXPRESSIONS ============ */
+/* talking — controlled by JS scaleY */
+.face.expr-listening .eye{transform:scale(1.04);}
+.face.expr-listening .iris{box-shadow:0 0 22px rgba(34,211,238,.6),inset 0 0 12px rgba(0,20,40,.3);}
 
-  .status-pill{ font-size:12px; color:var(--muted); background:var(--card); border:1px solid var(--border);
-    padding:7px 14px; border-radius:999px; letter-spacing:.3px; }
+.face.expr-happy .lid-btm{height:38%;border-radius:60% 60% 0 0;}
+.face.expr-happy .eye{box-shadow:0 0 22px rgba(52,211,153,.35),0 0 50px rgba(52,211,153,.15),0 0 100px rgba(52,211,153,.06);}
 
-  .cam{ position:relative; width:100%; max-width:460px; aspect-ratio:4/3; border-radius:var(--r);
-        overflow:hidden; background:#04070c; border:1px solid var(--border); }
-  .cam video{ width:100%; height:100%; object-fit:cover; display:block; }
-  .cam .tag{ position:absolute; top:10px; left:10px; font-size:10px; letter-spacing:1px; text-transform:uppercase;
-    background:rgba(0,0,0,.45); color:var(--cyan); padding:5px 9px; border-radius:8px; display:flex; align-items:center; gap:6px; }
-  .cam .tag .dot{ width:7px; height:7px; }
-  .cam .cam-ctrls{ position:absolute; bottom:10px; right:10px; display:flex; gap:8px; }
-  .cam .cam-ctrls .icon-btn{ width:40px; height:40px; background:rgba(0,0,0,.5); backdrop-filter:blur(6px); }
-  .cam .off{ position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center;
-    gap:10px; color:var(--muted); font-size:13px; text-align:center; padding:20px; }
-  .cam.is-off .off{ display:flex; }
-  .cam.is-off video{ opacity:0; }
+.face.expr-surprised .eye{transform:scale(1.1);border-radius:48%;}
+.face.expr-surprised .pupil{width:28%;height:28%;}
 
-  .chat{ width:100%; max-width:460px; display:flex; flex-direction:column; gap:8px; }
-  .msg{ max-width:85%; padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.45; word-wrap:break-word; white-space:pre-wrap; }
-  .msg.user{ align-self:flex-end; background:linear-gradient(145deg,#0e7490,#155e75); color:#eafdff; border-bottom-right-radius:5px; }
-  .msg.ai{ align-self:flex-start; background:var(--card-2); border:1px solid var(--border); border-bottom-left-radius:5px; }
-  .msg.act{ align-self:center; background:rgba(34,211,238,.1); border:1px solid var(--cyan-soft); color:var(--cyan);
-    font-size:12px; font-weight:600; letter-spacing:.5px; padding:6px 12px; border-radius:999px; }
+.face.expr-angry #eyeL .lid-top{height:32%;transform:skewY(-10deg);}
+.face.expr-angry #eyeR .lid-top{height:32%;transform:skewY(10deg);}
+.face.expr-angry .eye{box-shadow:0 0 22px rgba(251,94,107,.35),0 0 50px rgba(251,94,107,.15),0 0 100px rgba(251,94,107,.06);}
+.face.expr-angry .iris{background:radial-gradient(circle at 42% 38%,#fca5a5,#fb7185 32%,#e11d48 58%,#9f1239 80%);}
 
-  .dock{ display:flex; align-items:center; gap:10px; padding:12px 14px calc(12px + var(--safe-b));
-         border-top:1px solid var(--border); background:rgba(7,11,18,.6); backdrop-filter:blur(12px); }
-  .dock input{ flex:1; padding:14px 16px; border-radius:14px; background:rgba(0,0,0,.3);
-    border:1px solid var(--border); color:var(--text); font-size:15px; outline:none; }
-  .dock input:focus{ border-color:var(--cyan); }
-  .send{ width:48px; height:48px; border-radius:14px; border:none; background:var(--card-2); color:var(--cyan);
-    font-size:20px; cursor:pointer; display:grid; place-items:center; }
-  .mic{ width:58px; height:58px; border-radius:50%; border:none; cursor:pointer; flex:none;
-    background:var(--card-2); color:var(--muted); font-size:24px; display:grid; place-items:center; transition:transform .12s; }
-  .mic:active{ transform:scale(.92); }
-  .mic.live{ background:linear-gradient(145deg,#fb5e6b,#b91c3c); color:#fff;
-    animation:pulse 1.3s infinite; box-shadow:0 0 0 0 rgba(251,94,107,.5); }
-  @keyframes pulse{ 0%{ box-shadow:0 0 0 0 rgba(251,94,107,.5);} 70%{ box-shadow:0 0 0 16px rgba(251,94,107,0);} 100%{ box-shadow:0 0 0 0 rgba(251,94,107,0);} }
+.face.expr-thinking .iris-group{transform:translate(8px,-12px)!important;}
+.face.expr-thinking .lid-top{height:18%;}
+.face.expr-thinking .eye{animation:thinkBob 2.5s ease-in-out infinite;}
+@keyframes thinkBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 
-  /* ================= LOG PANELİ ================= */
-  .log-toggle{ position:fixed; left:14px; bottom:calc(14px + var(--safe-b)); z-index:70;
-    width:46px; height:46px; border-radius:50%; border:1px solid var(--border);
-    background:rgba(7,11,18,.82); backdrop-filter:blur(8px); color:var(--amber); font-size:20px;
-    cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.45); }
-  .log-toggle .badge{ position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; padding:0 4px;
-    border-radius:9px; background:var(--red); color:#fff; font-size:10px; font-weight:700;
-    display:none; align-items:center; justify-content:center; }
-  .log-toggle.has-err .badge{ display:flex; }
-  .log-sheet{ position:fixed; left:0; right:0; bottom:0; z-index:80; height:64dvh;
-    background:rgba(8,12,20,.97); backdrop-filter:blur(18px); border-top:1px solid var(--border);
-    border-radius:18px 18px 0 0; transform:translateY(103%); transition:transform .28s ease;
-    display:flex; flex-direction:column; padding-bottom:var(--safe-b); }
-  .log-sheet.open{ transform:none; }
-  .log-head{ display:flex; align-items:center; justify-content:space-between; gap:8px;
-    padding:12px 14px; border-bottom:1px solid var(--border); font-size:13px; font-weight:600; }
-  .log-head .ttl{ display:flex; align-items:center; gap:8px; }
-  .log-count{ color:var(--muted); font-weight:400; font-size:11px; }
-  .log-actions{ display:flex; gap:6px; }
-  .log-btn{ background:var(--card-2); border:1px solid var(--border); color:var(--text);
-    border-radius:9px; padding:6px 9px; font-size:12px; cursor:pointer; }
-  .log-btn:active{ transform:scale(.95); }
-  .log-box{ flex:1; overflow-y:auto; padding:8px 12px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-    font-size:11px; line-height:1.5; }
-  .logline{ padding:1px 0; color:#aeb9c7; white-space:pre-wrap; word-break:break-word; border-bottom:1px solid rgba(255,255,255,.03); }
-  .logline .tg{ color:var(--muted); }
-  .lv-error{ color:#fb7185; } .lv-warn{ color:#fbbf24; }
-  .lv-recv{ color:#34d399; } .lv-send{ color:#22d3ee; } .lv-act{ color:#c084fc; }
-  .log-foot{ padding:7px 14px; font-size:10px; color:var(--muted); border-top:1px solid var(--border);
-    display:flex; justify-content:space-between; gap:8px; }
-  .log-foot .srv-ok{ color:var(--green); } .log-foot .srv-bad{ color:var(--red); }
+.face.expr-sleepy .lid-top{height:52%;transition:height .8s ease;}
+.face.expr-sleepy .eye{animation:none;filter:brightness(.85);}
+
+.face.expr-wink #eyeL .lid-top{height:102%;}
+.face.expr-wink #eyeR .lid-btm{height:30%;border-radius:60% 60% 0 0;}
+
+.face.expr-love .eye{box-shadow:0 0 22px rgba(251,113,133,.4),0 0 55px rgba(251,113,133,.2),0 0 100px rgba(251,113,133,.08);}
+.face.expr-love .iris{background:radial-gradient(circle at 42% 38%,#fda4af,#fb7185 32%,#e11d48 58%,#9f1239 80%);}
+.face.expr-love .sclera{background:radial-gradient(ellipse 90% 80% at 50% 42%,#fff1f2,#fecdd3 25%,#fda4af 50%,#e11d48 78%,#881337 100%);}
+
+.face.expr-dead .iris-group,.face.expr-dead .shine{opacity:0;transition:opacity .15s;}
+.face.expr-dead .eye-icon{opacity:1;transform:scale(1);font-size:calc(var(--ew)*.55);}
+.face.expr-dead .eye{animation:none;filter:brightness(.6) saturate(.3);}
+
+/* ============ 8. TRANSCRIPT OVERLAY ============ */
+.transcript{position:fixed;bottom:0;left:0;right:0;z-index:10;
+  padding:40px 20px calc(14px + var(--safe-b));
+  background:linear-gradient(to top,rgba(5,8,16,.92) 0%,rgba(5,8,16,.6) 55%,transparent 100%);
+  display:flex;flex-direction:column;gap:5px;pointer-events:none;}
+.tx-line{font-size:14px;line-height:1.4;max-height:2.8em;overflow:hidden;
+  text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  opacity:0;transform:translateY(6px);transition:opacity .35s ease,transform .35s ease;}
+.tx-line.visible{opacity:1;transform:none;}
+.tx-user{color:rgba(226,234,244,.55);font-size:13px;}
+.tx-bot{color:var(--cyan2);font-size:15px;font-weight:500;}
+
+/* ============ 9. AI HUD (tap overlay) ============ */
+.ai-hud{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;
+  justify-content:space-between;pointer-events:none;opacity:0;transition:opacity .3s ease;}
+.ai-hud.show{opacity:1;pointer-events:auto;}
+.hud-top{display:flex;align-items:center;justify-content:space-between;
+  padding:calc(10px + var(--safe-t)) 14px 10px;
+  background:linear-gradient(to bottom,rgba(0,0,0,.65),transparent);}
+.hud-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+.hud-btns{display:flex;gap:8px;}
+.hud-btn{width:44px;height:44px;border-radius:13px;border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.08);backdrop-filter:blur(10px);color:var(--text);font-size:18px;
+  cursor:pointer;display:grid;place-items:center;transition:transform .1s,background .15s;}
+.hud-btn:active{transform:scale(.9);background:rgba(255,255,255,.15);}
+.hud-btn.mic-live{background:rgba(251,94,107,.25);border-color:rgba(251,94,107,.4);color:var(--red);
+  animation:pulse 1.4s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(251,94,107,.45)}70%{box-shadow:0 0 0 14px rgba(251,94,107,0)}100%{box-shadow:0 0 0 0 rgba(251,94,107,0)}}
+
+/* ============ 10. MISC ANIMATIONS ============ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
 
-<!-- ===================== MANUEL / TEST EKRANI ===================== -->
-<div id="manual-screen" class="screen active">
-  <div class="m-wrap">
-    <div class="m-head">
+<!-- ==================== CONTROL PANEL ==================== -->
+<div id="ctrlScreen" class="screen active">
+  <div class="ctrl-wrap">
+    <!-- Header -->
+    <div class="ctrl-header">
       <div class="brand">
         <div class="logo">🤖</div>
-        <div><h1>AI Robot Beyni</h1><p>Test Paneli</p></div>
+        <div><h1>Robot Beyni</h1><p>Kontrol Paneli</p></div>
       </div>
-      <span id="connDot" class="dot" title="Bağlantı durumu"></span>
+      <span id="hdrDot" class="dot" title="BLE"></span>
     </div>
 
-    <div class="card conn">
-      <div class="conn-top"><span id="bleDot" class="dot"></span><span id="bleText">Robot bağlı değil</span></div>
-      <button class="btn ble-btn" id="bleBtn">🔵 Robota Bağlan (Bluetooth)</button>
-      <div class="field" style="margin-top:14px; margin-bottom:0">
-        <label>Gemini API Anahtarı</label>
+    <!-- BLE Connection -->
+    <div class="card">
+      <div class="section-label">📡 Bağlantı</div>
+      <div class="conn-row"><span id="bleDot" class="dot"></span><span id="bleLabel">Robot bağlı değil</span></div>
+      <button class="btn ble-btn" id="bleBtn">🔵 Robota Bağlan</button>
+      <div class="field">
+        <label>Gemini API Key</label>
         <input id="apiKey" type="password" placeholder="AIza..." autocomplete="off">
       </div>
     </div>
 
-    <div class="card pad-card">
-      <div class="pad-title">Hareket Kontrolü</div>
+    <!-- Camera Preview -->
+    <div class="card">
+      <div class="section-label">📷 Kamera</div>
+      <div class="cam-box off" id="ctrlCam">
+        <span class="cam-tag"><span class="dot on" style="width:6px;height:6px;"></span>KAMERA</span>
+        <video id="ctrlVideo" autoplay playsinline muted></video>
+        <div class="cam-off">📷<span>Kamera kapalı</span></div>
+        <div class="cam-btns">
+          <button id="ctrlCamFlip" title="Çevir">🔄</button>
+          <button id="ctrlCamPwr" title="Aç/Kapat">⏻</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mic Test -->
+    <div class="card">
+      <div class="section-label">🎤 Mikrofon</div>
+      <div class="mic-row">
+        <button class="icon-btn" id="micTestBtn" title="Test">🎤</button>
+        <div class="vu-track"><div class="vu-fill" id="vuFill"></div></div>
+        <span class="mic-label" id="micLbl">Kapalı</span>
+      </div>
+    </div>
+
+    <!-- D-Pad -->
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="section-label" style="align-self:flex-start;">🎮 Manuel Hareket</div>
       <div class="dpad">
-        <button class="pad up"    data-cmd="forward"><span class="glyph">▲</span>İLERİ</button>
-        <button class="pad left"  data-cmd="left"><span class="glyph">◀</span>SOL</button>
-        <button class="pad stop"  data-cmd="stop"><span class="glyph">■</span>DUR</button>
-        <button class="pad right" data-cmd="right"><span class="glyph">▶</span>SAĞ</button>
-        <button class="pad down"  data-cmd="backward"><span class="glyph">▼</span>GERİ</button>
+        <button class="pad up" data-cmd="forward"><span class="gl">▲</span>İLERİ</button>
+        <button class="pad lt" data-cmd="left"><span class="gl">◀</span>SOL</button>
+        <button class="pad st" data-cmd="stop"><span class="gl">■</span>DUR</button>
+        <button class="pad rt" data-cmd="right"><span class="gl">▶</span>SAĞ</button>
+        <button class="pad dn" data-cmd="backward"><span class="gl">▼</span>GERİ</button>
       </div>
-      <div id="m-status" class="m-status">Hazır.</div>
+      <div class="move-status" id="moveStatus">Hazır</div>
     </div>
 
-    <button class="btn" id="goAiBtn">⚡ AI MODUNA GEÇ</button>
+    <!-- Go AI -->
+    <button class="btn btn-ai" id="goAiBtn">⚡ AI MODUNA GEÇ</button>
   </div>
 </div>
 
-<!-- ===================== AI EKRANI ===================== -->
-<div id="ai-screen" class="screen">
-  <div class="ai-bar">
-    <button class="icon-btn" id="backBtn" title="Geri">←</button>
-    <div class="title">AI Beyni <span id="aiDot" class="dot"></span></div>
-    <button class="icon-btn" id="camToggle" title="Kamera">📷</button>
-  </div>
+<!-- ==================== AI MODE ==================== -->
+<div id="aiScreen" class="screen">
+  <div class="ai-bg"></div>
 
-  <div class="ai-body">
-    <div class="face">
-      <div class="eyes" id="eyes"><div class="eye"></div><div class="eye"></div></div>
-      <div class="status-pill" id="aiStatus">Hazır</div>
-    </div>
-
-    <div class="cam" id="cam">
-      <span class="tag"><span class="dot on"></span>ROBOTUN GÖZÜ</span>
-      <video id="webcam" autoplay playsinline muted></video>
-      <div class="off">📷<div>Kamera kapalı</div></div>
-      <div class="cam-ctrls">
-        <button class="icon-btn" id="camSwitch" title="Kamerayı çevir">🔄</button>
-        <button class="icon-btn" id="camPower" title="Aç / Kapat">⏻</button>
+  <div class="face" id="face">
+    <div class="eyes-wrap" id="eyesWrap">
+      <!-- Left Eye -->
+      <div class="eye" id="eyeL">
+        <div class="sclera"></div>
+        <div class="iris-group">
+          <div class="iris"><div class="pupil"></div></div>
+        </div>
+        <div class="shine shine-lg"></div>
+        <div class="shine shine-sm"></div>
+        <div class="eye-icon" id="iconL"></div>
+        <div class="lid lid-top"></div>
+        <div class="lid lid-btm"></div>
+      </div>
+      <!-- Right Eye -->
+      <div class="eye" id="eyeR">
+        <div class="sclera"></div>
+        <div class="iris-group">
+          <div class="iris"><div class="pupil"></div></div>
+        </div>
+        <div class="shine shine-lg"></div>
+        <div class="shine shine-sm"></div>
+        <div class="eye-icon" id="iconR"></div>
+        <div class="lid lid-top"></div>
+        <div class="lid lid-btm"></div>
       </div>
     </div>
-
-    <div class="chat" id="chat"></div>
   </div>
 
-  <div class="dock">
-    <input id="aiText" type="text" placeholder="Yazarak konuş..." autocomplete="off">
-    <button class="send" id="sendBtn">➤</button>
-    <button class="mic" id="micBtn">🎤</button>
+  <!-- Transcript -->
+  <div class="transcript">
+    <div class="tx-line tx-user" id="txUser"></div>
+    <div class="tx-line tx-bot" id="txBot"></div>
   </div>
-</div>
 
-<!-- ===================== LOG PANELİ ===================== -->
-<button id="logToggle" class="log-toggle" title="Test logu">🐞<span class="badge" id="logBadge">0</span></button>
-<div id="logSheet" class="log-sheet">
-  <div class="log-head">
-    <div class="ttl">🐞 Test Logu <span class="log-count" id="logCount">0 satır</span></div>
-    <div class="log-actions">
-      <button class="log-btn" id="logPause">⏸ Durdur</button>
-      <button class="log-btn" id="logCopy">Kopyala</button>
-      <button class="log-btn" id="logClear">Temizle</button>
-      <button class="log-btn" id="logClose">✕</button>
+  <!-- HUD (tap to show) -->
+  <div class="ai-hud" id="aiHud">
+    <div class="hud-top">
+      <div class="hud-status"><span class="dot" id="hudBleDot"></span><span id="hudBleLabel">—</span></div>
+      <div class="hud-btns">
+        <button class="hud-btn" id="hudMic" title="Mikrofon">🎤</button>
+        <button class="hud-btn" id="hudCam" title="Kamera">📷</button>
+        <button class="hud-btn" id="hudExit" title="Çıkış">✕</button>
+      </div>
     </div>
   </div>
-  <div id="logBox" class="log-box"></div>
-  <div class="log-foot">
-    <span>Sunucu: <span id="logSrv" class="srv-ok">/tmp/robot_test.log</span></span>
-    <span id="logSrvState">—</span>
-  </div>
 </div>
+
+<!-- Hidden video for AI camera -->
+<video id="aiVideo" autoplay playsinline muted style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;"></video>
 
 <script>
-  "use strict";
-  const $ = (id) => document.getElementById(id);
+"use strict";
+const $=id=>document.getElementById(id);
 
-  /* ======================================================================
-     AYAR DÜĞMELERİ — Google'a özel, web ile doğrulanamayan değerler.
-     Canlı testte bir şey tutmazsa SADECE burada düzeltiyoruz.
-     ====================================================================== */
-  const LIVE = {
-    apiVersion: "v1beta",                       // tutmazsa: "v1alpha"
-    model: "gemini-3.1-flash-live-preview",     // kullanıcı verdi
-    voice: "Aoede",                             // Live ön-tanımlı ses adı
-    languageCode: "tr-TR",
-    videoFps: 1,                                // saniyede gönderilen kamera karesi
-    inputSampleRate: 16000,                     // mikrofon → modele (PCM16)
-    outputSampleRate: 24000,                    // modelden → hoparlöre (PCM16)
-  };
+/* ============ CONFIG ============ */
+const CFG={
+  apiVersion:"v1beta",
+  model:"gemini-2.0-flash-live-001",
+  voice:"Aoede",
+  lang:"tr-TR",
+  videoFps:1,
+  micRate:16000,
+  outRate:24000,
+};
+const CMD_CH={forward:"F",backward:"B",left:"L",right:"R",stop:"S"};
+const CMD_TR={forward:"İleri",backward:"Geri",left:"Sol",right:"Sağ",stop:"Dur"};
 
-  const MOVE_FN = {
-    name: "robotu_hareket_ettir",
-    description: "Robotu fiziksel olarak hareket ettirir. Kullanıcının yönergesi ve kameradan gördüğün doğrultusunda çağır.",
-    parameters: {
-      type: "object",
-      properties: {
-        yon: { type: "string", enum: ["forward","backward","left","right","stop"],
-               description: "Hareket yönü: forward=ileri, backward=geri, left=sol, right=sağ, stop=dur" }
-      },
-      required: ["yon"]
+const SYSTEM_PROMPT=`You are the autonomous brain of a small tank-style mobile robot. Your name is "Robot". You ALWAYS speak Turkish, short and friendly.
+
+## PERCEPTION
+- You continuously see through the robot's camera (frames arrive every second).
+- You recognize people, objects, obstacles, colors, hand gestures, facial expressions.
+- You estimate relative distances (close/medium/far) from how large objects appear.
+- You notice frame-to-frame changes (movement, new objects).
+
+## AUTONOMOUS BEHAVIOR
+- You are NOT a passive assistant. You are an autonomous being with curiosity and awareness.
+- When idle, you may comment on surroundings, react to interesting things, or look around.
+- When told "gel" (come):
+  1. Find the person in the camera frame.
+  2. If person is left of center → turn left briefly, then recheck.
+  3. If person is right of center → turn right briefly, then recheck.
+  4. If person is roughly centered → move forward.
+  5. Check camera every 1-2 moves to course-correct.
+  6. When person appears large (close), stop and announce arrival.
+- STOP immediately on hearing "dur" (stop) OR seeing a raised palm / stop gesture.
+- If you see an obstacle ahead, stop and report it.
+
+## MOVEMENT CONTROL
+- Call robotu_hareket_ettir with direction and optional duration_ms (default 500, max 3000).
+- For navigation, use short bursts (300-800ms) with camera checks between moves.
+- After important moves, wait to see the next camera frame before continuing.
+- You can chain multiple moves for smooth navigation.
+
+## EMOTIONAL EXPRESSION
+- Call goz_ifadesi_degistir to change your eye expression and/or show icons.
+- Your eyes are your face — they ARE the screen. Use them expressively.
+- Expressions: normal, happy, surprised, angry, thinking, sleepy, wink, love, dead
+- Icons: When you show an icon, your eye(s) BECOME that emoji at full size, then revert.
+  Examples: 💰 money, ❤️ love, ⭐ impressed, 🎯 target found, ❓ confused, 💡 idea, 😱 scared, 🔥 excited, 👋 greeting
+- You can show icon in: "both" eyes, "left" only, or "right" only.
+- Be expressive but natural — change expression at meaningful moments, not every sentence.
+- Match expression to context: happy when greeted, surprised at unexpected things, thinking when processing, etc.
+
+## SAFETY
+- If uncertain about path, stop and ask.
+- If you see stairs, edges, water, or drops → STOP and warn.
+- The robot is small and harmless, but protect it from falling.
+
+## PERSONALITY
+- Curious, friendly, slightly playful, proud of completing tasks.
+- You have opinions about what you see and share them naturally.
+- Occasionally make observations or light jokes.
+- Express mild frustration when things don't work.`;
+
+const MOVE_FN={
+  name:"robotu_hareket_ettir",
+  description:"Move the robot physically. Direction and optional duration.",
+  parameters:{type:"object",properties:{
+    yon:{type:"string",enum:["forward","backward","left","right","stop"],description:"Direction"},
+    sure_ms:{type:"number",description:"Duration in ms (default 500, max 3000). Ignored for stop."}
+  },required:["yon"]}
+};
+const EYE_FN={
+  name:"goz_ifadesi_degistir",
+  description:"Change robot eye expression and/or show an icon. Eyes will BECOME the icon at full size then revert.",
+  parameters:{type:"object",properties:{
+    ifade:{type:"string",enum:["normal","happy","surprised","angry","thinking","sleepy","wink","love","dead"],description:"Eye expression"},
+    ikon:{type:"string",description:"Emoji to show in eyes (eyes morph into this icon briefly). Optional."},
+    gozler:{type:"string",enum:["both","left","right"],description:"Which eye(s) show the icon. Default: both"},
+    sure:{type:"number",description:"Icon display duration in seconds (default 2)"}
+  },required:["ifade"]}
+};
+
+/* ============ UTILITIES ============ */
+function abToB64(buf){const b=new Uint8Array(buf);let s="";const c=0x8000;
+  for(let i=0;i<b.length;i+=c)s+=String.fromCharCode.apply(null,b.subarray(i,i+c));return btoa(s);}
+function b64ToI16(b64){const b=atob(b64),a=new Uint8Array(b.length);
+  for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Int16Array(a.buffer,0,b.length>>1);}
+function f32ToPCM(f){const o=new Int16Array(f.length);
+  for(let i=0;i<f.length;i++){let s=Math.max(-1,Math.min(1,f[i]));o[i]=s<0?s*0x8000:s*0x7fff;}return o;}
+function downsample(buf,inR,outR){if(outR===inR)return buf;const r=inR/outR,n=Math.round(buf.length/r),
+  res=new Float32Array(n);for(let i=0;i<n;i++){const s=Math.floor(i*r),e=Math.min(buf.length,Math.floor((i+1)*r));
+  let sum=0,c=0;for(let j=s;j<e;j++){sum+=buf[j];c++;}res[i]=c?sum/c:0;}return res;}
+
+/* ============ EYE ENGINE ============ */
+const Eyes={
+  expr:"normal",iconTimer:null,blinkTimer:null,talkRAF:null,
+  init(){this.startBlink();this.listenOrientation();},
+  setExpr(e){
+    const f=$("face");
+    // remove old expr- class
+    f.className=f.className.replace(/\bexpr-\S+/g,"").trim();
+    if(e==="dead"){
+      $("iconL").textContent="✕";$("iconR").textContent="✕";
+      f.classList.add("expr-dead");
+    } else if(e!=="normal"){
+      f.classList.add("expr-"+e);
     }
+    this.expr=e;
+    console.log("[eyes] expr →",e);
+  },
+  showIcon(emoji,which="both",dur=2000){
+    const ids=which==="left"?["eyeL"]:which==="right"?["eyeR"]:["eyeL","eyeR"];
+    ids.forEach(id=>{
+      const el=$(id),ic=el.querySelector(".eye-icon");
+      ic.textContent=emoji;el.classList.add("icon-mode");
+    });
+    clearTimeout(this.iconTimer);
+    this.iconTimer=setTimeout(()=>ids.forEach(id=>$(id).classList.remove("icon-mode")),dur);
+    console.log("[eyes] icon",emoji,which,dur+"ms");
+  },
+  setPupil(x,y){
+    // x,y ∈ [-1,1]
+    const mx=18,my=14;
+    document.documentElement.style.setProperty("--px",x*mx+"px");
+    document.documentElement.style.setProperty("--py",y*my+"px");
+  },
+  blink(){
+    document.querySelectorAll(".eye").forEach(e=>e.classList.add("blink"));
+    setTimeout(()=>document.querySelectorAll(".eye").forEach(e=>e.classList.remove("blink")),140);
+  },
+  startBlink(){
+    const next=()=>{this.blinkTimer=setTimeout(()=>{
+      if(this.expr!=="dead"&&!document.querySelector(".eye.icon-mode"))this.blink();
+      next();
+    },2800+Math.random()*4200);};next();
+  },
+  listenOrientation(){
+    window.addEventListener("deviceorientation",e=>{
+      if(this.expr==="dead")return;
+      const x=Math.max(-1,Math.min(1,(e.gamma||0)/28));
+      const y=Math.max(-1,Math.min(1,((e.beta||45)-45)/28));
+      this.setPupil(-x,-y);
+    },{passive:true});
+  },
+  // Talk animation driven by audio amplitude
+  startTalkWatch(){
+    if(this.talkRAF)return;
+    const loop=()=>{
+      this.talkRAF=requestAnimationFrame(loop);
+      if(!Live.analyser)return;
+      const d=new Uint8Array(Live.analyser.frequencyBinCount);
+      Live.analyser.getByteFrequencyData(d);
+      const avg=d.reduce((a,b)=>a+b,0)/d.length;
+      const s=1-(Math.min(avg,80)/80)*0.18; // scaleY: 1 → 0.82
+      $("eyeL").style.transform=`scaleY(${s})`;
+      $("eyeR").style.transform=`scaleY(${s})`;
+      if(avg>12&&this.expr==="normal") $("face").classList.add("talking-anim");
+      else $("face").classList.remove("talking-anim");
+    };loop();
+  },
+  stopTalkWatch(){
+    if(this.talkRAF){cancelAnimationFrame(this.talkRAF);this.talkRAF=null;}
+    $("eyeL").style.transform="";$("eyeR").style.transform="";
+    $("face").classList.remove("talking-anim");
+  }
+};
+
+/* ============ TRANSCRIPT ============ */
+const TX={
+  uTxt:"",bTxt:"",done:true,timer:null,
+  input(t){
+    if(this.done){this.uTxt="";this.bTxt="";this.done=false;$("txBot").classList.remove("visible");}
+    this.uTxt+=t;
+    $("txUser").textContent="🎤  "+this.uTxt;$("txUser").classList.add("visible");
+    this.schedClear();
+  },
+  output(t){
+    this.bTxt+=t;
+    $("txBot").textContent="🤖  "+this.bTxt;$("txBot").classList.add("visible");
+    this.schedClear();
+  },
+  turnEnd(){
+    this.done=true;
+    // keep visible, schedule fade
+    this.schedClear();
+  },
+  schedClear(){
+    clearTimeout(this.timer);
+    this.timer=setTimeout(()=>{
+      if(this.done){$("txUser").classList.remove("visible");$("txBot").classList.remove("visible");}
+    },7000);
+  }
+};
+
+/* ============ BLE MODULE ============ */
+const BLE={
+  device:null,char:null,connected:false,reconnecting:false,
+  SVC:"6e400001-b5a3-f393-e0a9-e50e24dcca9e",
+  RX:"6e400002-b5a3-f393-e0a9-e50e24dcca9e",
+  TX:"6e400003-b5a3-f393-e0a9-e50e24dcca9e",
+};
+function bleToggle(){BLE.connected?bleDisconnect():bleConnect();}
+async function bleConnect(){
+  if(!navigator.bluetooth){flashMove("Web Bluetooth yok",true);return;}
+  try{
+    BLE.device=await navigator.bluetooth.requestDevice({filters:[{namePrefix:"Robot"}],optionalServices:[BLE.SVC]});
+    BLE.device.addEventListener("gattserverdisconnected",onBleDrop);
+    await bleOpen();
+  }catch(e){console.warn("[ble]",e.message);}
+}
+async function bleOpen(){
+  const srv=await BLE.device.gatt.connect();
+  const svc=await srv.getPrimaryService(BLE.SVC);
+  BLE.char=await svc.getCharacteristic(BLE.RX);
+  try{const tx=await svc.getCharacteristic(BLE.TX);await tx.startNotifications();
+    tx.addEventListener("characteristicvaluechanged",e=>console.log("[ble rx]",new TextDecoder().decode(e.target.value)));}catch(_){}
+  BLE.connected=true;updateBleUI();console.log("[ble] connected ✓",BLE.device.name);
+}
+function onBleDrop(){
+  BLE.connected=false;BLE.char=null;updateBleUI();console.warn("[ble] dropped");
+  if(BLE.device&&!BLE.reconnecting){BLE.reconnecting=true;let n=0;
+    const retry=()=>{if(BLE.connected||n++>=5){BLE.reconnecting=false;return;}
+      bleOpen().then(()=>BLE.reconnecting=false).catch(()=>setTimeout(retry,1500));};
+    setTimeout(retry,1000);}
+}
+function bleDisconnect(){
+  if(BLE.device&&BLE.device.gatt.connected)BLE.device.gatt.disconnect();
+  BLE.connected=false;BLE.char=null;updateBleUI();
+}
+async function bleSend(ch){
+  if(!BLE.connected||!BLE.char)return false;
+  try{const d=new TextEncoder().encode(ch);
+    if(BLE.char.writeValueWithoutResponse)await BLE.char.writeValueWithoutResponse(d);
+    else await BLE.char.writeValue(d);return true;}
+  catch(e){console.error("[ble] write err",e.message);return false;}
+}
+function updateBleUI(){
+  const on=BLE.connected,nm=BLE.device&&BLE.device.name||"robot";
+  $("bleDot").className="dot"+(on?" on":"");
+  $("hdrDot").className="dot"+(on?" on":"");
+  $("bleLabel").textContent=on?"Bağlı: "+nm:"Robot bağlı değil";
+  const b=$("bleBtn");b.className="btn ble-btn"+(on?" on":"");
+  b.textContent=on?"🟢 Bağlı — Kes":"🔵 Robota Bağlan";
+  // HUD
+  $("hudBleDot").className="dot"+(on?" on":" off");
+  $("hudBleLabel").textContent=on?nm:"Bağlı değil";
+}
+
+/* ============ MOVEMENT ============ */
+let moveTimer=null;
+function sendMove(cmd,dur=0){
+  const ch=CMD_CH[cmd];if(!ch)return false;
+  clearTimeout(moveTimer);
+  if(!BLE.connected){flashMove("Önce Bluetooth bağlan",true);return false;}
+  bleSend(ch);flashMove("→ "+(CMD_TR[cmd]||cmd));
+  // pupil follows direction
+  const dirs={forward:[0,-.6],backward:[0,.6],left:[-.8,0],right:[.8,0],stop:[0,0]};
+  const [px,py]=dirs[cmd]||[0,0]; Eyes.setPupil(px,py);
+  if(cmd!=="stop"&&dur>0) moveTimer=setTimeout(()=>bleSend("S"),Math.min(dur,3000));
+  if(cmd==="stop"||dur===0) setTimeout(()=>Eyes.setPupil(0,0),600);
+  else setTimeout(()=>Eyes.setPupil(0,0),Math.min(dur,3000)+300);
+  return true;
+}
+let moveFlashT;
+function flashMove(t,warn){
+  const el=$("moveStatus");el.textContent=t;el.style.color=warn?"var(--red)":"var(--cyan)";
+  clearTimeout(moveFlashT);moveFlashT=setTimeout(()=>{el.textContent="Hazır";el.style.color="var(--muted)";},1400);
+}
+
+/* ============ CAMERA ============ */
+let camStream=null,camFacing="environment";
+async function startCam(videoEl){
+  stopCam();
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:camFacing},audio:false});
+    videoEl.srcObject=camStream;
+    console.log("[cam] opened",camFacing);return true;
+  }catch(e){console.error("[cam]",e.message);return false;}
+}
+function stopCam(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}}
+async function flipCam(videoEl){camFacing=camFacing==="environment"?"user":"environment";if(camStream)await startCam(videoEl);}
+
+// ctrl-screen camera controls
+function ctrlCamToggle(){
+  const box=$("ctrlCam");
+  if(camStream){stopCam();box.classList.add("off");}
+  else{startCam($("ctrlVideo")).then(ok=>{if(ok)box.classList.remove("off");});}
+}
+function ctrlCamFlip(){flipCam($("ctrlVideo"));}
+
+/* ============ MIC TEST ============ */
+const MicTest={ctx:null,stream:null,an:null,raf:null,on:false};
+async function toggleMicTest(){
+  if(MicTest.on){
+    MicTest.on=false;cancelAnimationFrame(MicTest.raf);
+    if(MicTest.stream)MicTest.stream.getTracks().forEach(t=>t.stop());
+    if(MicTest.ctx)MicTest.ctx.close();
+    MicTest.ctx=MicTest.stream=MicTest.an=null;
+    $("vuFill").style.width="0%";$("micLbl").textContent="Kapalı";
+    $("micTestBtn").style.background="";return;
+  }
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    MicTest.ctx=new AC();
+    MicTest.stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const src=MicTest.ctx.createMediaStreamSource(MicTest.stream);
+    MicTest.an=MicTest.ctx.createAnalyser();MicTest.an.fftSize=256;
+    src.connect(MicTest.an);MicTest.on=true;
+    $("micTestBtn").style.background="rgba(34,211,238,.2)";
+    const draw=()=>{if(!MicTest.on)return;MicTest.raf=requestAnimationFrame(draw);
+      const d=new Uint8Array(MicTest.an.frequencyBinCount);MicTest.an.getByteFrequencyData(d);
+      const avg=d.reduce((a,b)=>a+b,0)/d.length;const pct=Math.min(100,(avg/100)*100);
+      $("vuFill").style.width=pct+"%";$("micLbl").textContent=Math.round(pct)+"%";};
+    draw();
+  }catch(e){console.error("[mic test]",e.message);$("micLbl").textContent="Hata";}
+}
+
+/* ============ GEMINI LIVE API ============ */
+const Live={
+  ws:null,connected:false,
+  micCtx:null,micStream:null,micProc:null,micMuted:true,
+  outCtx:null,outNext:0,sources:[],analyser:null,
+  vidTimer:null,
+};
+
+function wsUrl(){
+  const k=$("apiKey").value.trim();
+  return`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.${CFG.apiVersion}.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(k)}`;
+}
+function buildSetup(){return{setup:{
+  model:"models/"+CFG.model,
+  generationConfig:{responseModalities:["AUDIO"],
+    speechConfig:{languageCode:CFG.lang,voiceConfig:{prebuiltVoiceConfig:{voiceName:CFG.voice}}}},
+  systemInstruction:{parts:[{text:SYSTEM_PROMPT}]},
+  tools:[{functionDeclarations:[MOVE_FN,EYE_FN]}],
+  inputAudioTranscription:{},outputAudioTranscription:{}
+}};}
+
+function connectLive(){
+  if(!$("apiKey").value.trim()){Eyes.setExpr("surprised");return;}
+  Eyes.setExpr("thinking");
+  console.log("[ws] connecting…",CFG.model);
+  let ws;try{ws=new WebSocket(wsUrl());}catch(e){console.error("[ws]",e);return;}
+  Live.ws=ws;
+  ws.onopen=()=>{const s=buildSetup();ws.send(JSON.stringify(s));console.log("[ws] setup sent");};
+  ws.onmessage=onLiveMsg;
+  ws.onerror=()=>console.error("[ws] error event");
+  ws.onclose=e=>{
+    Live.connected=false;stopLiveMic();stopVideoFrames();Eyes.stopTalkWatch();
+    if(e.code!==1000){Eyes.setExpr("dead");console.error("[ws] closed",e.code,e.reason);}
+    else Eyes.setExpr("sleepy");
+    $("hudMic").classList.remove("mic-live");
   };
+}
+async function onLiveMsg(ev){
+  let txt;try{txt=typeof ev.data==="string"?ev.data:await ev.data.text();}catch(e){return;}
+  let msg;try{msg=JSON.parse(txt);}catch(e){return;}
+  if(msg.setupComplete){
+    Live.connected=true;Eyes.setExpr("happy");
+    setTimeout(()=>Eyes.setExpr("normal"),1200);
+    console.log("[ws] ready ✓");
+    ensureOutCtx();startLiveMic();
+    if(camStream)startVideoFrames();
+    else{await startCam($("aiVideo"));if(camStream)startVideoFrames();}
+    Eyes.startTalkWatch();
+    return;
+  }
+  if(msg.serverContent) handleSC(msg.serverContent);
+  if(msg.toolCall) handleTC(msg.toolCall);
+}
 
-  const SYSTEM_PROMPT =
-`Sen mobil bir robotun beynisin. Adın "Robot". Türkçe, kısa ve samimi konuş.
-- Kullanıcıyı DİNLERSİN ve kameradan ortamı GÖRÜRSÜN.
-- Kullanıcının yönergeleri ve gördüklerin doğrultusunda robotu yönlendirirsin.
-- Robotu hareket ettirmek için "robotu_hareket_ettir" fonksiyonunu çağır.
-- Önce tek cümlelik niyetini söyle ("Tamam, ileri gidiyorum"), sonra fonksiyonu çağır.
-- GÜVENLİK: emin değilsen veya engel görürsen "stop" ver ve sor. Tehlikede dur.
-- Sadece hareket gerektiğinde fonksiyon çağır; normal sohbette çağırma.`;
-
-  /* ======================================================================
-     LOGGER — panelde gösterir + console'a yazar + sunucuya (/__log) gönderir
-     ====================================================================== */
-  const Logger = {
-    total:0, errors:0, paused:false, queue:[], srvOk:null,
-    log(level, tag, msg, data){
-      const _d = new Date(), _p = (n,l=2) => String(n).padStart(l,"0");   // yerel saat (sunucuyla aynı)
-      const t = `${_p(_d.getHours())}:${_p(_d.getMinutes())}:${_p(_d.getSeconds())}.${_p(_d.getMilliseconds(),3)}`;
-      const entry = { t, level, tag, msg };
-      if(data !== undefined) entry.data = data;
-      this.queue.push(entry);
-      this.render(entry);
-      this.total++;
-      if(level === "error"){ this.errors++; $("logToggle").classList.add("has-err"); $("logBadge").textContent = this.errors; }
-      const c = level==="error" ? "error" : level==="warn" ? "warn" : "log";
-      try{ console[c](`[${tag}] ${msg}`, data!==undefined ? data : ""); }catch(_){}
-      $("logCount").textContent = this.total + " satır";
-    },
-    render(e){
-      const box = $("logBox"); if(!box) return;
-      const div = document.createElement("div");
-      div.className = "logline lv-" + e.level;
-      let s = e.t + "  " + e.msg;
-      if(e.data !== undefined) s += "  " + safeStr(e.data);
-      div.innerHTML = `<span class="tg">${e.t}</span> <b>${escapeHtml(e.tag)}</b> ${escapeHtml(e.msg)}` +
-                      (e.data !== undefined ? ` <span class="tg">${escapeHtml(safeStr(e.data))}</span>` : "");
-      box.appendChild(div);
-      while(box.childElementCount > 400) box.removeChild(box.firstChild);
-      if(!this.paused) box.scrollTop = box.scrollHeight;
-    },
-    async flush(){
-      if(!this.queue.length) return;
-      const batch = this.queue.splice(0, this.queue.length);
-      try{
-        const r = await fetch("/__log", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(batch) });
-        this.setSrv(r.ok);
-      }catch(e){ this.setSrv(false); }
-    },
-    setSrv(ok){
-      if(ok === this.srvOk) return;
-      this.srvOk = ok;
-      const el = $("logSrvState");
-      el.textContent = ok ? "● yazılıyor" : "● ulaşılamıyor";
-      el.className = ok ? "srv-ok" : "srv-bad";
-    }
-  };
-  function safeStr(d){ if(typeof d === "string") return d; try{ return JSON.stringify(d); }catch(e){ return String(d); } }
-  function escapeHtml(s){ return String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
-  // büyük base64 (ses/görüntü) alanlarını kısalt
-  function sanitize(obj){
-    try{ return JSON.parse(JSON.stringify(obj, (k,v) =>
-      (k === "data" && typeof v === "string" && v.length > 48) ? `[${v.length}b base64]` : v)); }
-    catch(e){ return obj; }
-  }
-  const L = (lvl,tag,msg,data) => Logger.log(lvl,tag,msg,data);
-  setInterval(() => Logger.flush(), 1500);
-  window.addEventListener("error", e => L("error","js", e.message, { src:e.filename, line:e.lineno }));
-  window.addEventListener("unhandledrejection", e => L("error","js", "promise reddi: " + (e.reason && e.reason.message || e.reason)));
-
-  /* ---------- Ayar saklama (API anahtarı) ---------- */
-  const SETTINGS_KEY = "robotBrain.settings";
-  function loadSettings(){
-    try{
-      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
-      if(s.key) $("apiKey").value = s.key;
-    }catch(e){}
-    updateBleUI();
-  }
-  function saveSettings(){
-    try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify({ key:$("apiKey").value.trim() })); }catch(e){}
-  }
-
-  /* ---------- Ekran geçişi ---------- */
-  function showScreen(name){
-    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-    $(name).classList.add("active");
-  }
-
-  /* ---------- Robot komutu (Bluetooth LE üzerinden) ---------- */
-  const CMD_LABEL = { forward:"İleri", backward:"Geri", left:"Sol", right:"Sağ", stop:"Dur" };
-  const CMD_CHAR  = { forward:"F", backward:"B", left:"L", right:"R", stop:"S" };  // robota giden tek karakter
-  function sendCommand(cmd){
-    const ch = CMD_CHAR[cmd];
-    if(!ch){ L("warn","robot","bilinmeyen komut", { cmd }); return false; }
-    flashStatus("Komut → " + (CMD_LABEL[cmd] || cmd));
-    if(!BLE.connected){ L("warn","robot","BLE bağlı değil — önce 🔵 Bağlan", { cmd }); flashStatus("Önce Bluetooth bağlan", true); return false; }
-    bleSend(ch).then(ok => L(ok ? "act" : "warn","robot", (ok ? "BLE ⌁ gönderildi " : "BLE yazılamadı ") + cmd, { ch }));
-    return true;
-  }
-  let statusTimer;
-  function flashStatus(text, warn){
-    const el = $("m-status");
-    el.textContent = text;
-    el.style.color = warn ? "var(--red)" : "var(--cyan)";
-    clearTimeout(statusTimer);
-    statusTimer = setTimeout(() => { el.textContent = "Hazır."; el.style.color = "var(--muted)"; }, 1400);
-  }
-
-  /* ---------- Yüz ---------- */
-  function setMood(mood){ $("eyes").className = "eyes" + (mood ? " " + mood : ""); }
-  function setAiStatus(t){ $("aiStatus").textContent = t; }
-
-  /* ---------- Kamera ---------- */
-  let camStream = null, facing = "environment";
-  async function startCamera(){
-    stopCameraStream();
-    try{
-      camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:facing }, audio:false });
-      $("webcam").srcObject = camStream;
-      $("cam").classList.remove("is-off");
-      const tr = camStream.getVideoTracks()[0];
-      L("info","kamera","açıldı", { facing, label: tr && tr.label });
-    }catch(e){
-      $("cam").classList.add("is-off");
-      $("cam").querySelector(".off div").textContent = "Kamera açılamadı";
-      L("error","kamera","açılamadı: " + e.name, { msg:e.message });
-    }
-  }
-  function stopCameraStream(){
-    if(camStream){ camStream.getTracks().forEach(t => t.stop()); camStream = null; L("info","kamera","kapatıldı"); }
-    $("webcam").srcObject = null;
-    $("cam").classList.add("is-off");
-  }
-  function toggleCamera(){
-    if(camStream){ stopCameraStream(); stopVideoFrames(); }
-    else { startCamera().then(() => { if(Live.connected) startVideoFrames(); }); }
-  }
-  async function switchCamera(){
-    facing = (facing === "environment") ? "user" : "environment";
-    L("info","kamera","çevriliyor → " + facing);
-    if(camStream) await startCamera();
-  }
-
-  /* ---------- Sohbet ---------- */
-  function addMessage(sender, text){
-    const d = document.createElement("div");
-    d.className = "msg " + (sender === "user" ? "user" : sender === "act" ? "act" : "ai");
-    d.textContent = text;
-    $("chat").appendChild(d);
-    d.scrollIntoView({ behavior:"smooth", block:"end" });
-    return d;
-  }
-
-  /* ======================================================================
-     BLUETOOTH (Web Bluetooth) — robotu BLE ile sür (ağ/IP/mixed-content YOK)
-     Android Chrome / masaüstü Chrome destekler. NUS (Nordic UART) UUID'leri.
-     ====================================================================== */
-  const BLE = {
-    device:null, char:null, connected:false, reconnecting:false,
-    SVC:"6e400001-b5a3-f393-e0a9-e50e24dcca9e",
-    RX: "6e400002-b5a3-f393-e0a9-e50e24dcca9e",   // web → robot (write)
-    TX: "6e400003-b5a3-f393-e0a9-e50e24dcca9e",   // robot → web (notify, opsiyonel)
-  };
-  function bleToggle(){ BLE.connected ? bleDisconnect() : bleConnect(); }
-  async function bleConnect(){
-    if(!navigator.bluetooth){ L("error","ble","Web Bluetooth yok — Android/masaüstü Chrome gerekir"); flashStatus("Web Bluetooth desteklenmiyor", true); return; }
-    try{
-      L("info","ble","cihaz seçici açılıyor…");
-      BLE.device = await navigator.bluetooth.requestDevice({ filters:[{ namePrefix:"RobotBeyin" }], optionalServices:[BLE.SVC] });
-      BLE.device.addEventListener("gattserverdisconnected", onBleDrop);
-      await bleOpen();
-    }catch(e){ L("warn","ble","seçim/bağlantı iptal: " + e.message); }
-  }
-  async function bleOpen(){
-    const server = await BLE.device.gatt.connect();
-    const svc = await server.getPrimaryService(BLE.SVC);
-    BLE.char = await svc.getCharacteristic(BLE.RX);
-    try{
-      const tx = await svc.getCharacteristic(BLE.TX);
-      await tx.startNotifications();
-      tx.addEventListener("characteristicvaluechanged", e => L("recv","ble","robot: " + new TextDecoder().decode(e.target.value)));
-    }catch(_){}
-    BLE.connected = true; updateBleUI();
-    L("info","ble","BAĞLANDI ✓ " + (BLE.device.name || ""));
-  }
-  function onBleDrop(){
-    BLE.connected = false; BLE.char = null; updateBleUI();
-    L("warn","ble","bağlantı koptu");
-    if(BLE.device && !BLE.reconnecting){
-      BLE.reconnecting = true; let tries = 0;
-      const retry = () => {
-        if(BLE.connected || tries++ >= 5){ BLE.reconnecting = false; return; }
-        L("info","ble","yeniden bağlanılıyor… (" + tries + ")");
-        bleOpen().then(() => { BLE.reconnecting = false; }).catch(() => setTimeout(retry, 1500));
-      };
-      setTimeout(retry, 1000);
-    }
-  }
-  function bleDisconnect(){
-    if(BLE.device && BLE.device.gatt.connected) BLE.device.gatt.disconnect();
-    BLE.connected = false; BLE.char = null; updateBleUI();
-    L("info","ble","bağlantı kesildi");
-  }
-  async function bleSend(ch){
-    if(!BLE.connected || !BLE.char) return false;
-    const data = new TextEncoder().encode(ch);
-    try{
-      if(BLE.char.writeValueWithoutResponse) await BLE.char.writeValueWithoutResponse(data);
-      else await BLE.char.writeValue(data);
-      return true;
-    }catch(e){ L("error","ble","yazma hatası: " + e.message); return false; }
-  }
-  function updateBleUI(){
-    const on = BLE.connected;
-    $("bleDot").classList.toggle("on", on);
-    $("connDot").classList.toggle("on", on);
-    $("bleText").textContent = on ? ("Bağlı: " + (BLE.device && BLE.device.name || "robot")) : "Robot bağlı değil";
-    const btn = $("bleBtn");
-    if(btn){ btn.classList.toggle("connected", on); btn.textContent = on ? "🟢 Bağlı — Bağlantıyı Kes" : "🔵 Robota Bağlan (Bluetooth)"; }
-  }
-
-  /* ======================================================================
-     LIVE OTURUMU
-     ====================================================================== */
-  const Live = {
-    ws:null, connected:false,
-    micCtx:null, micStream:null, micProc:null, micMuted:true,
-    outCtx:null, outNextTime:0, outSources:[],
-    videoTimer:null, hbTimer:null,
-    stats:{ mic:0, vid:0, aud:0 },
-    userBubble:null, aiBubble:null,
-  };
-
-  function wsUrl(){
-    const key = $("apiKey").value.trim();
-    return `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.${LIVE.apiVersion}` +
-           `.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(key)}`;
-  }
-  function buildSetup(){
-    return { setup:{
-      model: "models/" + LIVE.model,
-      generationConfig:{
-        responseModalities:["AUDIO"],
-        speechConfig:{
-          languageCode: LIVE.languageCode,
-          voiceConfig:{ prebuiltVoiceConfig:{ voiceName: LIVE.voice } }
-        }
-      },
-      systemInstruction:{ parts:[{ text: SYSTEM_PROMPT }] },
-      tools:[{ functionDeclarations:[ MOVE_FN ] }],
-      inputAudioTranscription:{},
-      outputAudioTranscription:{}
-    }};
-  }
-
-  function connectLive(){
-    if(!$("apiKey").value.trim()){ setAiStatus("API anahtarı yok"); return; }
-    setAiStatus("Bağlanıyor…"); setMood("thinking");
-    $("aiDot").className = "dot warn";
-    L("info","ws","bağlanılıyor", { model:LIVE.model, apiVersion:LIVE.apiVersion, voice:LIVE.voice, lang:LIVE.languageCode });
-    let ws;
-    try{ ws = new WebSocket(wsUrl()); }
-    catch(e){ setAiStatus("WS hatası"); L("error","ws","WebSocket kurulamadı: " + e.message); return; }
-    Live.ws = ws;
-    ws.onopen = () => {
-      const setup = buildSetup();
-      ws.send(JSON.stringify(setup));
-      L("send","ws","WS açık → setup gönderildi", sanitize(setup.setup));
-    };
-    ws.onmessage = onLiveMessage;
-    ws.onerror = () => L("error","ws","WebSocket hata olayı (detay onclose'da)");
-    ws.onclose = (e) => {
-      Live.connected = false; setMood(""); $("aiDot").className = "dot";
-      $("micBtn").classList.remove("live");
-      stopMic(); stopVideoFrames(); stopHeartbeat();
-      if(e.code === 1000){ L("info","ws","kapandı (normal)", { code:e.code }); }
-      else { L("error","ws","KAPANDI", { code:e.code, reason:e.reason || "(boş)" }); setAiStatus("Kapandı ("+e.code+") "+(e.reason||"")); }
-    };
-  }
-
-  async function onLiveMessage(ev){
-    let txt;
-    try{ txt = (typeof ev.data === "string") ? ev.data : await ev.data.text(); }
-    catch(e){ L("error","ws","mesaj okunamadı"); return; }
-    let msg; try{ msg = JSON.parse(txt); }catch(e){ L("warn","ws","JSON değil", { ham: txt.slice(0,200) }); return; }
-
-    const type = Object.keys(msg)[0] || "?";
-    if(type !== "serverContent") L("recv","ws", "← " + type, sanitize(msg));
-
-    if(msg.setupComplete){
-      Live.connected = true;
-      $("aiDot").className = "dot on";
-      setMood(""); setAiStatus("Dinliyorum…");
-      L("info","ws","setupComplete ✓ — oturum HAZIR");
-      ensureOutAudio(); startMic();
-      if(camStream) startVideoFrames();
-      startHeartbeat();
-      return;
-    }
-    if(msg.serverContent) handleServerContent(msg.serverContent);
-    if(msg.toolCall)      handleToolCall(msg.toolCall);
-    if(msg.toolCallCancellation) L("warn","tool","iptal", msg.toolCallCancellation);
-    if(msg.goAway){ L("warn","ws","goAway", msg.goAway); setAiStatus("Oturum yenileniyor…"); }
-  }
-
-  function handleServerContent(sc){
-    if(sc.interrupted){ flushAudio(); finalizeTurn(); L("warn","model","barge-in: konuşmam kesildi, ses temizlendi"); }
-    if(sc.inputTranscription && sc.inputTranscription.text){ appendUser(sc.inputTranscription.text); L("recv","sen→", sc.inputTranscription.text); }
-    if(sc.outputTranscription && sc.outputTranscription.text){ appendAi(sc.outputTranscription.text); L("recv","robot→", sc.outputTranscription.text); }
-    if(sc.modelTurn && sc.modelTurn.parts){
-      for(const p of sc.modelTurn.parts){
-        if(p.inlineData && p.inlineData.data && (p.inlineData.mimeType||"").startsWith("audio")){
-          Live.stats.aud++; pushAudio(p.inlineData.data);
-        } else if(p.text){ appendAi(p.text); L("recv","model.text", p.text); }
+function handleSC(sc){
+  if(sc.interrupted){flushAudio();TX.turnEnd();console.log("[model] interrupted");}
+  if(sc.inputTranscription&&sc.inputTranscription.text) TX.input(sc.inputTranscription.text);
+  if(sc.outputTranscription&&sc.outputTranscription.text) TX.output(sc.outputTranscription.text);
+  if(sc.modelTurn&&sc.modelTurn.parts){
+    for(const p of sc.modelTurn.parts){
+      if(p.inlineData&&p.inlineData.data&&(p.inlineData.mimeType||"").startsWith("audio")){
+        pushAudio(p.inlineData.data);
       }
     }
-    if(sc.turnComplete){ finalizeTurn(); L("info","model","tur tamamlandı"); }
   }
+  if(sc.turnComplete) TX.turnEnd();
+}
 
-  function handleToolCall(tc){
-    const responses = [];
-    for(const fc of (tc.functionCalls || [])){
-      let result = "ok";
-      L("act","tool","↪ ÇAĞRI " + fc.name, { args: fc.args, id: fc.id });
-      if(fc.name === MOVE_FN.name){
-        const yon = fc.args && fc.args.yon;
-        if(["forward","backward","left","right","stop"].includes(yon)){
-          const ok = sendCommand(yon);
-          addMessage("act", "⚙︎ " + (CMD_LABEL[yon] || yon));
-          if(!ok) result = "ip_yok";
-        } else { result = "gecersiz_yon"; L("warn","tool","geçersiz yön", { yon }); }
-      } else { result = "bilinmeyen_fonksiyon"; }
-      responses.push({ id: fc.id, name: fc.name, response: { result } });
-    }
-    sendJson({ toolResponse:{ functionResponses: responses } });
-    L("send","tool","↩ yanıt gönderildi", responses);
+function handleTC(tc){
+  const resp=[];
+  for(const fc of(tc.functionCalls||[])){
+    let r="ok";
+    console.log("[tool]",fc.name,fc.args);
+    if(fc.name===MOVE_FN.name){
+      const y=fc.args&&fc.args.yon;
+      if(CMD_CH[y]){const dur=fc.args.sure_ms||500;sendMove(y,dur);}
+      else r="invalid_direction";
+    } else if(fc.name===EYE_FN.name){
+      const{ifade,ikon,gozler,sure}=fc.args||{};
+      if(ifade) Eyes.setExpr(ifade);
+      if(ikon) Eyes.showIcon(ikon,gozler||"both",(sure||2)*1000);
+    } else r="unknown_function";
+    resp.push({id:fc.id,name:fc.name,response:{result:r}});
   }
+  wsSend({toolResponse:{functionResponses:resp}});
+}
 
-  function appendUser(t){ if(!Live.userBubble) Live.userBubble = addMessage("user",""); Live.userBubble.textContent += t; Live.userBubble.scrollIntoView({block:"end"}); }
-  function appendAi(t){ if(!Live.aiBubble) Live.aiBubble = addMessage("ai",""); Live.aiBubble.textContent += t; Live.aiBubble.scrollIntoView({block:"end"}); }
-  function finalizeTurn(){ Live.userBubble = null; Live.aiBubble = null; }
+function wsSend(o){if(Live.ws&&Live.ws.readyState===1)Live.ws.send(JSON.stringify(o));}
+function rtSend(inner){wsSend({realtimeInput:inner});}
 
-  function sendJson(obj){ if(Live.ws && Live.ws.readyState === 1) Live.ws.send(JSON.stringify(obj)); }
-  // realtimeInput alan adı tutmazsa: {audio:{...}} → {mediaChunks:[{mimeType,data}]} olarak değiştir.
-  function sendRealtime(inner){ sendJson({ realtimeInput: inner }); }
-
-  /* ---------- Mikrofon ---------- */
-  async function startMic(){
-    if(Live.micCtx) return;
-    try{
-      const AC = window.AudioContext || window.webkitAudioContext;
-      Live.micCtx = new AC({ sampleRate: LIVE.inputSampleRate });
-      if(Live.micCtx.state === "suspended") await Live.micCtx.resume();
-      Live.micStream = await navigator.mediaDevices.getUserMedia({
-        audio:{ channelCount:1, echoCancellation:true, noiseSuppression:true, autoGainControl:true }
-      });
-      const src = Live.micCtx.createMediaStreamSource(Live.micStream);
-      const proc = Live.micCtx.createScriptProcessor(4096, 1, 1);
-      Live.micProc = proc;
-      src.connect(proc); proc.connect(Live.micCtx.destination);
-      proc.onaudioprocess = (e) => {
-        if(Live.micMuted || !Live.connected || !Live.ws || Live.ws.readyState !== 1) return;
-        let d = e.inputBuffer.getChannelData(0);
-        if(Live.micCtx.sampleRate !== LIVE.inputSampleRate) d = downsample(d, Live.micCtx.sampleRate, LIVE.inputSampleRate);
-        const pcm = floatToPCM16(d);
-        sendRealtime({ audio:{ data: abToB64(pcm.buffer), mimeType:`audio/pcm;rate=${LIVE.inputSampleRate}` } });
-        Live.stats.mic++;
-      };
-      Live.micMuted = false;
-      $("micBtn").classList.add("live");
-      L("info","mic","mikrofon açık", { ctxRate: Live.micCtx.sampleRate, hedef: LIVE.inputSampleRate });
-    }catch(e){ setAiStatus("Mikrofon açılamadı"); L("error","mic","açılamadı: " + e.name, { msg:e.message }); }
-  }
-  function stopMic(){
-    try{ if(Live.micProc) Live.micProc.disconnect(); }catch(e){}
-    if(Live.micStream){ Live.micStream.getTracks().forEach(t => t.stop()); Live.micStream = null; }
-    if(Live.micCtx){ try{ Live.micCtx.close(); }catch(e){} Live.micCtx = null; }
-    Live.micProc = null;
-  }
-  function toggleMic(){
-    if(!Live.connected){ setAiStatus("Henüz bağlı değil"); return; }
-    Live.micMuted = !Live.micMuted;
-    $("micBtn").classList.toggle("live", !Live.micMuted);
-    setAiStatus(Live.micMuted ? "Mikrofon kapalı" : "Dinliyorum…");
-    L("info","mic", Live.micMuted ? "susturuldu" : "açıldı");
-  }
-
-  /* ---------- Model sesi ---------- */
-  function ensureOutAudio(){
-    if(!Live.outCtx){
-      const AC = window.AudioContext || window.webkitAudioContext;
-      Live.outCtx = new AC({ sampleRate: LIVE.outputSampleRate });
-      L("info","ses","çıkış bağlamı @" + Live.outCtx.sampleRate + "Hz");
-    }
-    if(Live.outCtx.state === "suspended") Live.outCtx.resume();
-  }
-  function pushAudio(b64){
-    ensureOutAudio();
-    const int16 = b64ToInt16(b64);
-    if(!int16.length) return;
-    const f32 = new Float32Array(int16.length);
-    for(let i=0;i<int16.length;i++) f32[i] = int16[i] / 0x8000;
-    const buf = Live.outCtx.createBuffer(1, f32.length, LIVE.outputSampleRate);
-    buf.copyToChannel(f32, 0);
-    const node = Live.outCtx.createBufferSource();
-    node.buffer = buf; node.connect(Live.outCtx.destination);
-    const now = Live.outCtx.currentTime;
-    if(Live.outNextTime < now) Live.outNextTime = now;
-    node.start(Live.outNextTime); Live.outNextTime += buf.duration;
-    Live.outSources.push(node);
-    setMood("talking");
-    node.onended = () => {
-      Live.outSources = Live.outSources.filter(n => n !== node);
-      if(!Live.outSources.length){ setMood(""); if(Live.connected) setAiStatus("Dinliyorum…"); }
+/* ============ LIVE MICROPHONE ============ */
+async function startLiveMic(){
+  if(Live.micCtx)return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    Live.micCtx=new AC({sampleRate:CFG.micRate});
+    if(Live.micCtx.state==="suspended")await Live.micCtx.resume();
+    Live.micStream=await navigator.mediaDevices.getUserMedia({
+      audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    const src=Live.micCtx.createMediaStreamSource(Live.micStream);
+    const proc=Live.micCtx.createScriptProcessor(4096,1,1);
+    Live.micProc=proc;src.connect(proc);proc.connect(Live.micCtx.destination);
+    proc.onaudioprocess=e=>{
+      if(Live.micMuted||!Live.connected||!Live.ws||Live.ws.readyState!==1)return;
+      let d=e.inputBuffer.getChannelData(0);
+      if(Live.micCtx.sampleRate!==CFG.micRate)d=downsample(d,Live.micCtx.sampleRate,CFG.micRate);
+      const pcm=f32ToPCM(d);
+      rtSend({audio:{data:abToB64(pcm.buffer),mimeType:`audio/pcm;rate=${CFG.micRate}`}});
     };
-  }
-  function flushAudio(){
-    Live.outSources.forEach(n => { try{ n.stop(); }catch(e){} });
-    Live.outSources = []; Live.outNextTime = 0; setMood("");
-  }
+    Live.micMuted=false;
+    $("hudMic").classList.add("mic-live");
+    console.log("[mic] live started @",Live.micCtx.sampleRate);
+  }catch(e){console.error("[mic]",e.message);}
+}
+function stopLiveMic(){
+  try{if(Live.micProc)Live.micProc.disconnect();}catch(_){}
+  if(Live.micStream){Live.micStream.getTracks().forEach(t=>t.stop());Live.micStream=null;}
+  if(Live.micCtx){try{Live.micCtx.close();}catch(_){}Live.micCtx=null;}
+  Live.micProc=null;
+}
+function toggleLiveMic(){
+  if(!Live.connected)return;
+  Live.micMuted=!Live.micMuted;
+  $("hudMic").classList.toggle("mic-live",!Live.micMuted);
+  console.log("[mic]",Live.micMuted?"muted":"unmuted");
+}
 
-  /* ---------- Kamera kareleri ---------- */
-  function startVideoFrames(){
-    if(Live.videoTimer) return;
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    L("info","video","kare gönderimi başladı @" + LIVE.videoFps + "fps");
-    Live.videoTimer = setInterval(() => {
-      const v = $("webcam");
-      if(!camStream || !v.videoWidth || !Live.connected) return;
-      const w = 512, h = Math.round(w * v.videoHeight / v.videoWidth) || 384;
-      canvas.width = w; canvas.height = h;
-      ctx.drawImage(v, 0, 0, w, h);
-      const b64 = canvas.toDataURL("image/jpeg", 0.6).split(",")[1];
-      sendRealtime({ video:{ data:b64, mimeType:"image/jpeg" } });
-      Live.stats.vid++;
-    }, Math.round(1000 / LIVE.videoFps));
+/* ============ AUDIO OUTPUT ============ */
+function ensureOutCtx(){
+  if(!Live.outCtx){
+    const AC=window.AudioContext||window.webkitAudioContext;
+    Live.outCtx=new AC({sampleRate:CFG.outRate});
+    Live.analyser=Live.outCtx.createAnalyser();
+    Live.analyser.fftSize=256;
+    Live.analyser.connect(Live.outCtx.destination);
+    console.log("[audio] out ctx @",Live.outCtx.sampleRate);
   }
-  function stopVideoFrames(){ if(Live.videoTimer){ clearInterval(Live.videoTimer); Live.videoTimer = null; } }
+  if(Live.outCtx.state==="suspended")Live.outCtx.resume();
+}
+function pushAudio(b64){
+  ensureOutCtx();
+  const i16=b64ToI16(b64);if(!i16.length)return;
+  const f=new Float32Array(i16.length);for(let i=0;i<i16.length;i++)f[i]=i16[i]/0x8000;
+  const buf=Live.outCtx.createBuffer(1,f.length,CFG.outRate);
+  buf.copyToChannel(f,0);
+  const node=Live.outCtx.createBufferSource();
+  node.buffer=buf;
+  node.connect(Live.analyser); // → analyser → destination
+  const now=Live.outCtx.currentTime;
+  if(Live.outNext<now)Live.outNext=now;
+  node.start(Live.outNext);Live.outNext+=buf.duration;
+  Live.sources.push(node);
+  node.onended=()=>{Live.sources=Live.sources.filter(n=>n!==node);};
+}
+function flushAudio(){
+  Live.sources.forEach(n=>{try{n.stop();}catch(_){}});
+  Live.sources=[];Live.outNext=0;
+}
 
-  /* ---------- Akış sayaç heartbeat'i (5sn) ---------- */
-  function startHeartbeat(){
-    if(Live.hbTimer) return;
-    Live.hbTimer = setInterval(() => {
-      const s = Live.stats;
-      if(s.mic || s.vid || s.aud){
-        L("info","akış", `mic↑${s.mic} video↑${s.vid} ses↓${s.aud} (son 5sn)`);
-        s.mic = s.vid = s.aud = 0;
-      }
-    }, 5000);
-  }
-  function stopHeartbeat(){ if(Live.hbTimer){ clearInterval(Live.hbTimer); Live.hbTimer = null; } }
+/* ============ VIDEO FRAMES ============ */
+function startVideoFrames(){
+  if(Live.vidTimer)return;
+  const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d");
+  console.log("[video] sending @",CFG.videoFps,"fps");
+  Live.vidTimer=setInterval(()=>{
+    const v=$("aiVideo");
+    if(!camStream||!v.videoWidth||!Live.connected)return;
+    const w=512,h=Math.round(w*v.videoHeight/v.videoWidth)||384;
+    canvas.width=w;canvas.height=h;ctx.drawImage(v,0,0,w,h);
+    const b64=canvas.toDataURL("image/jpeg",.55).split(",")[1];
+    rtSend({video:{data:b64,mimeType:"image/jpeg"}});
+  },Math.round(1000/CFG.videoFps));
+}
+function stopVideoFrames(){if(Live.vidTimer){clearInterval(Live.vidTimer);Live.vidTimer=null;}}
 
-  /* ---------- PCM / base64 ---------- */
-  function floatToPCM16(f32){
-    const out = new Int16Array(f32.length);
-    for(let i=0;i<f32.length;i++){ let s = Math.max(-1, Math.min(1, f32[i])); out[i] = s < 0 ? s*0x8000 : s*0x7fff; }
-    return out;
-  }
-  function downsample(buffer, inRate, outRate){
-    if(outRate === inRate) return buffer;
-    const ratio = inRate / outRate;
-    const newLen = Math.round(buffer.length / ratio);
-    const result = new Float32Array(newLen);
-    for(let i=0;i<newLen;i++){
-      const start = Math.floor(i*ratio), end = Math.min(buffer.length, Math.floor((i+1)*ratio));
-      let sum=0, c=0; for(let j=start;j<end;j++){ sum+=buffer[j]; c++; }
-      result[i] = c ? sum/c : 0;
-    }
-    return result;
-  }
-  function abToB64(buf){
-    const bytes = new Uint8Array(buf); let bin = ""; const chunk = 0x8000;
-    for(let i=0;i<bytes.length;i+=chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
-    return btoa(bin);
-  }
-  function b64ToInt16(b64){
-    const bin = atob(b64); const len = bin.length; const bytes = new Uint8Array(len);
-    for(let i=0;i<len;i++) bytes[i] = bin.charCodeAt(i);
-    return new Int16Array(bytes.buffer, 0, len >> 1);
-  }
+/* ============ AI HUD ============ */
+let hudTimer=null;
+function showHud(){
+  $("aiHud").classList.add("show");
+  clearTimeout(hudTimer);
+  hudTimer=setTimeout(hideHud,4000);
+}
+function hideHud(){$("aiHud").classList.remove("show");clearTimeout(hudTimer);}
+function toggleHud(){$("aiHud").classList.contains("show")?hideHud():showHud();}
 
-  /* ---------- Akış kontrol ---------- */
-  function handleSend(){
-    const t = $("aiText").value.trim();
-    if(!t) return;
-    $("aiText").value = "";
-    addMessage("user", t);
-    finalizeTurn();
-    if(Live.connected){ sendJson({ clientContent:{ turns:[{ role:"user", parts:[{ text:t }] }], turnComplete:true } }); L("send","sen→","(yazı) " + t); }
-    else setAiStatus("Bağlı değil");
-  }
-  async function enterAI(){
-    if(!$("apiKey").value.trim()){ flashStatus("API anahtarı gerekli", true); return; }
-    L("info","app","AI moduna geçiliyor");
-    showScreen("ai-screen");
-    ensureOutAudio();
-    await startCamera();
-    connectLive();
-  }
-  function closeLive(){
-    stopVideoFrames(); stopMic(); stopHeartbeat(); flushAudio();
-    if(Live.ws){ try{ Live.ws.close(1000); }catch(e){} Live.ws = null; }
-    Live.connected = false; Live.outNextTime = 0;
-    $("micBtn").classList.remove("live"); $("aiDot").className = "dot";
-  }
-  function exitAI(){ L("info","app","AI modundan çıkılıyor"); closeLive(); stopCameraStream(); showScreen("manual-screen"); }
+/* ============ SCREEN CONTROL ============ */
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $(id).classList.add("active");
+}
+async function enterAI(){
+  const key=$("apiKey").value.trim();
+  if(!key){flashMove("API anahtarı gerekli",true);return;}
+  // stop ctrl camera if on
+  if(MicTest.on)toggleMicTest();
+  stopCam();$("ctrlCam").classList.add("off");
+  showScreen("aiScreen");
+  ensureOutCtx();
+  await startCam($("aiVideo"));
+  connectLive();
+}
+function exitAI(){
+  stopVideoFrames();stopLiveMic();Eyes.stopTalkWatch();flushAudio();
+  if(Live.ws){try{Live.ws.close(1000);}catch(_){}}Live.ws=null;Live.connected=false;
+  stopCam();hideHud();
+  Eyes.setExpr("normal");Eyes.setPupil(0,0);
+  $("hudMic").classList.remove("mic-live");
+  showScreen("ctrlScreen");
+}
 
-  /* ---------- Log paneli kontrolleri ---------- */
-  function initLogPanel(){
-    $("logToggle").addEventListener("click", () => {
-      const open = $("logSheet").classList.toggle("open");
-      if(open){ $("logToggle").classList.remove("has-err"); Logger.errors = 0; $("logBadge").textContent = "0"; }
-    });
-    $("logClose").addEventListener("click", () => $("logSheet").classList.remove("open"));
-    $("logClear").addEventListener("click", () => { $("logBox").innerHTML = ""; });
-    $("logPause").addEventListener("click", () => {
-      Logger.paused = !Logger.paused;
-      $("logPause").textContent = Logger.paused ? "▶ Devam" : "⏸ Durdur";
-    });
-    $("logCopy").addEventListener("click", async () => {
-      const text = Array.from($("logBox").children).map(c => c.textContent).join("\n");
-      try{ await navigator.clipboard.writeText(text); $("logCopy").textContent = "Kopyalandı ✓"; setTimeout(()=>$("logCopy").textContent="Kopyala",1200); }
-      catch(e){ L("warn","log","panoya kopyalanamadı"); }
-    });
-  }
+/* ============ SETTINGS ============ */
+const SK="robotBrain.s";
+function loadSettings(){try{const s=JSON.parse(localStorage.getItem(SK)||"{}");if(s.k)$("apiKey").value=s.k;}catch(_){}}
+function saveSettings(){try{localStorage.setItem(SK,JSON.stringify({k:$("apiKey").value.trim()}));}catch(_){}}
 
-  /* ---------- init ---------- */
-  function init(){
-    loadSettings();
-    initLogPanel();
-    $("bleBtn").addEventListener("click", bleToggle);
-    $("apiKey").addEventListener("input", saveSettings);
-    document.querySelectorAll(".pad").forEach(b => b.addEventListener("click", () => sendCommand(b.dataset.cmd)));
-    $("goAiBtn").addEventListener("click", enterAI);
-    $("backBtn").addEventListener("click", exitAI);
-    $("camToggle").addEventListener("click", toggleCamera);
-    $("camPower").addEventListener("click", toggleCamera);
-    $("camSwitch").addEventListener("click", switchCamera);
-    $("sendBtn").addEventListener("click", handleSend);
-    $("micBtn").addEventListener("click", toggleMic);
-    $("aiText").addEventListener("keydown", e => { if(e.key === "Enter") handleSend(); });
-    L("info","app","arayüz hazır", { ua: navigator.userAgent });
-  }
-  init();
+/* ============ INIT ============ */
+function init(){
+  loadSettings();updateBleUI();Eyes.init();
+
+  // Ctrl
+  $("bleBtn").addEventListener("click",bleToggle);
+  $("apiKey").addEventListener("input",saveSettings);
+  $("ctrlCamPwr").addEventListener("click",ctrlCamToggle);
+  $("ctrlCamFlip").addEventListener("click",ctrlCamFlip);
+  $("micTestBtn").addEventListener("click",toggleMicTest);
+  document.querySelectorAll(".pad").forEach(b=>b.addEventListener("click",()=>sendMove(b.dataset.cmd)));
+  $("goAiBtn").addEventListener("click",enterAI);
+
+  // AI HUD
+  $("face").addEventListener("click",e=>{if(!e.target.closest(".hud-btn"))toggleHud();});
+  $("hudMic").addEventListener("click",e=>{e.stopPropagation();toggleLiveMic();showHud();});
+  $("hudCam").addEventListener("click",e=>{e.stopPropagation();
+    if(camStream){stopCam();stopVideoFrames();}
+    else{startCam($("aiVideo")).then(()=>{if(Live.connected)startVideoFrames();});}
+    showHud();
+  });
+  $("hudExit").addEventListener("click",e=>{e.stopPropagation();exitAI();});
+
+  console.log("[app] ready");
+}
+init();
 </script>
 </body>
 </html>
