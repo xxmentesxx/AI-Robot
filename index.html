@@ -266,8 +266,25 @@ body{background:var(--bg);color:var(--text);
 .hud-btn.mic-live{background:rgba(251,94,107,.25);border-color:rgba(251,94,107,.4);color:var(--red);
   animation:pulse 1.4s infinite;}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(251,94,107,.45)}70%{box-shadow:0 0 0 14px rgba(251,94,107,0)}100%{box-shadow:0 0 0 0 rgba(251,94,107,0)}}
+.hud-btn.rec-active{background:rgba(251,94,107,.35);border-color:rgba(251,94,107,.5);color:var(--red);
+  animation:pulse 1.2s infinite;}
 
-/* ============ 10. MISC ANIMATIONS ============ */
+/* ============ 10. MEDIA PREVIEW ============ */
+.media-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.88);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  opacity:0;pointer-events:none;transition:opacity .3s ease;}
+.media-overlay.show{opacity:1;pointer-events:auto;}
+.media-overlay img,.media-overlay video{max-width:92vw;max-height:75vh;border-radius:16px;
+  box-shadow:0 8px 40px rgba(0,0,0,.6);object-fit:contain;}
+.media-overlay .media-tag{margin-top:14px;font-size:12px;color:var(--muted);
+  display:flex;align-items:center;gap:8px;}
+.media-overlay .media-close{position:absolute;top:calc(16px + var(--safe-t));right:16px;
+  width:44px;height:44px;border-radius:13px;border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.1);backdrop-filter:blur(8px);color:#fff;font-size:20px;
+  cursor:pointer;display:grid;place-items:center;}
+.media-overlay .media-close:active{transform:scale(.9);}
+
+/* ============ 11. MISC ANIMATIONS ============ */
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 </style>
 </head>
@@ -407,11 +424,21 @@ body{background:var(--bg);color:var(--text);
     <div class="hud-top">
       <div class="hud-status"><span class="dot" id="hudBleDot"></span><span id="hudBleLabel">—</span></div>
       <div class="hud-btns">
-        <button class="hud-btn" id="hudMic" title="Mikrofon">🎤</button>
-        <button class="hud-btn" id="hudCam" title="Kamera">📷</button>
+        <button class="hud-btn" id="hudMic" title="Mikrofon">🎙️</button>
+        <button class="hud-btn" id="hudFlip" title="Kamera Çevir">🔄</button>
+        <button class="hud-btn" id="hudPhoto" title="Fotoğraf Çek">📸</button>
+        <button class="hud-btn" id="hudRec" title="Video Kaydet">⏺</button>
         <button class="hud-btn" id="hudExit" title="Çıkış">✕</button>
       </div>
     </div>
+  </div>
+
+  <!-- Media Preview Overlay -->
+  <div class="media-overlay" id="mediaOverlay">
+    <img id="mediaImg" style="display:none">
+    <video id="mediaVid" style="display:none" controls playsinline></video>
+    <div class="media-tag" id="mediaTag"></div>
+    <button class="media-close" id="mediaClose">✕</button>
   </div>
 </div>
 
@@ -517,6 +544,20 @@ const SYSTEM_PROMPT=`You are the autonomous brain of a small tank-style mobile r
 - Turn it off when not needed to save power.
 - You can flash it (quick on-off) for fun reactions.
 
+## CAMERA CONTROL
+- Call kamera_degistir to switch between front (selfie) and back (rear) camera.
+- Use back camera (default) for navigation and exploring.
+- Switch to front camera when someone asks for a selfie, or to show what's in front of you to someone behind.
+- After switching, wait for a new frame before analyzing.
+
+## PHOTO & VIDEO
+- Call fotograf_cek to capture a photo from the current camera view. The photo will be shown on screen.
+- Call video_kaydet with eylem="start" to begin recording, eylem="stop" to stop and show the video.
+- Take photos of interesting things you discover while exploring.
+- Record short videos (5-15 seconds) of noteworthy moments.
+- When asked "bunu çek" or "fotoğraf çek", take a photo immediately.
+- Show the 📸 icon in your eyes when taking a photo.
+
 ## SAFETY
 - If uncertain about path, stop and ask.
 - If you see stairs, edges, water, or drops → STOP and warn.
@@ -559,6 +600,25 @@ const LIGHT_FN={
   parameters:{type:"object",properties:{
     durum:{type:"string",enum:["on","off"],description:"on to turn on, off to turn off"}
   },required:["durum"]}
+};
+const CAMERA_FN={
+  name:"kamera_degistir",
+  description:"Switch between front (selfie) and back (rear) camera.",
+  parameters:{type:"object",properties:{
+    kamera:{type:"string",enum:["front","back"],description:"front=selfie camera, back=rear camera"}
+  },required:["kamera"]}
+};
+const PHOTO_FN={
+  name:"fotograf_cek",
+  description:"Capture a photo from the current camera view and display it on screen.",
+  parameters:{type:"object",properties:{},required:[]}
+};
+const VIDEO_FN={
+  name:"video_kaydet",
+  description:"Start or stop video recording from the current camera.",
+  parameters:{type:"object",properties:{
+    eylem:{type:"string",enum:["start","stop"],description:"start or stop recording"}
+  },required:["eylem"]}
 };
 
 /* ============ UTILITIES ============ */
@@ -798,6 +858,90 @@ function ctrlCamToggle(){
 }
 function ctrlCamFlip(){flipCam($("ctrlVideo"));}
 
+// AI camera flip
+async function aiFlipCam(){
+  stopVideoFrames();
+  camFacing=camFacing==="environment"?"user":"environment";
+  await startCam($("aiVideo"));
+  if(Live.connected)startVideoFrames();
+  console.log("[cam] AI flipped to",camFacing);
+}
+async function aiSwitchCam(target){
+  const f=target==="front"?"user":"environment";
+  if(camFacing===f)return"already_"+target;
+  camFacing=f;stopVideoFrames();
+  await startCam($("aiVideo"));
+  if(Live.connected)startVideoFrames();
+  return"switched_to_"+target;
+}
+
+/* ============ PHOTO CAPTURE ============ */
+function capturePhoto(){
+  const v=$("aiVideo");
+  if(!camStream||!v.videoWidth)return"no_camera";
+  const c=document.createElement("canvas");
+  c.width=v.videoWidth;c.height=v.videoHeight;
+  c.getContext("2d").drawImage(v,0,0);
+  const url=c.toDataURL("image/png");
+  showMediaPreview(url,"image");
+  console.log("[photo] captured",v.videoWidth,"x",v.videoHeight);
+  return"photo_captured";
+}
+
+/* ============ VIDEO RECORDING ============ */
+let recorder=null,recChunks=[];
+function startRecording(){
+  if(!camStream)return"no_camera";
+  if(recorder&&recorder.state==="recording")return"already_recording";
+  recChunks=[];
+  try{
+    recorder=new MediaRecorder(camStream,{mimeType:"video/webm;codecs=vp8"});
+  }catch(_){
+    try{recorder=new MediaRecorder(camStream);}catch(e){return"recorder_error";}
+  }
+  recorder.ondataavailable=e=>{if(e.data.size>0)recChunks.push(e.data);};
+  recorder.onstop=()=>{
+    const blob=new Blob(recChunks,{type:recorder.mimeType||"video/webm"});
+    const url=URL.createObjectURL(blob);
+    showMediaPreview(url,"video");
+    recorder=null;
+    $("hudRec").classList.remove("rec-active");
+    console.log("[video] saved",Math.round(blob.size/1024)+"KB");
+  };
+  recorder.start(1000);
+  $("hudRec").classList.add("rec-active");
+  console.log("[video] recording started");
+  return"recording_started";
+}
+function stopRecording(){
+  if(!recorder||recorder.state!=="recording")return"not_recording";
+  recorder.stop();
+  return"recording_stopped";
+}
+function toggleRecording(){recorder&&recorder.state==="recording"?stopRecording():startRecording();}
+
+/* ============ MEDIA PREVIEW ============ */
+let mediaAutoHide=null;
+function showMediaPreview(src,type){
+  const ov=$("mediaOverlay"),img=$("mediaImg"),vid=$("mediaVid");
+  clearTimeout(mediaAutoHide);
+  if(type==="image"){
+    img.src=src;img.style.display="block";vid.style.display="none";vid.pause();
+    $("mediaTag").textContent="📸 Fotoğraf";
+    mediaAutoHide=setTimeout(hideMediaPreview,6000);
+  } else {
+    vid.src=src;vid.style.display="block";img.style.display="none";
+    $("mediaTag").textContent="🎥 Video";
+    vid.play().catch(()=>{});
+  }
+  ov.classList.add("show");
+}
+function hideMediaPreview(){
+  clearTimeout(mediaAutoHide);
+  $("mediaOverlay").classList.remove("show");
+  $("mediaVid").pause();
+}
+
 /* ============ MIC TEST ============ */
 const MicTest={ctx:null,stream:null,an:null,raf:null,on:false};
 async function toggleMicTest(){
@@ -842,7 +986,7 @@ function buildSetup(){return{setup:{
   generationConfig:{responseModalities:["AUDIO"],
     speechConfig:{languageCode:CFG.lang,voiceConfig:{prebuiltVoiceConfig:{voiceName:CFG.voice}}}},
   systemInstruction:{parts:[{text:SYSTEM_PROMPT}]},
-  tools:[{functionDeclarations:[MOVE_FN,EYE_FN,NECK_FN,LIGHT_FN]}],
+  tools:[{functionDeclarations:[MOVE_FN,EYE_FN,NECK_FN,LIGHT_FN,CAMERA_FN,PHOTO_FN,VIDEO_FN]}],
   inputAudioTranscription:{},outputAudioTranscription:{}
 }};}
 
@@ -921,10 +1065,23 @@ function handleTC(tc){
       if(d==="on"){bleSend("O");lightOn=true;$("lightBtn").textContent="💡 Açık";$("lightBtn").classList.add("on");r="light_on";}
       else if(d==="off"){bleSend("C");lightOn=false;$("lightBtn").textContent="💡 Kapalı";$("lightBtn").classList.remove("on");r="light_off";}
       else r="invalid_state";
+    } else if(fc.name===CAMERA_FN.name){
+      const k=fc.args&&fc.args.kamera;
+      aiSwitchCam(k||"back").then(res=>{
+        wsSend({toolResponse:{functionResponses:[{id:fc.id,name:fc.name,response:{result:res}}]}});
+      });
+      continue; // async — skip sync response
+    } else if(fc.name===PHOTO_FN.name){
+      r=capturePhoto();
+    } else if(fc.name===VIDEO_FN.name){
+      const e=fc.args&&fc.args.eylem;
+      if(e==="start")r=startRecording();
+      else if(e==="stop")r=stopRecording();
+      else r="invalid_action";
     } else r="unknown_function";
     resp.push({id:fc.id,name:fc.name,response:{result:r}});
   }
-  wsSend({toolResponse:{functionResponses:resp}});
+  if(resp.length)wsSend({toolResponse:{functionResponses:resp}});
 }
 
 function wsSend(o){if(Live.ws&&Live.ws.readyState===1)Live.ws.send(JSON.stringify(o));}
@@ -1059,10 +1216,12 @@ async function enterAI(){
 }
 function exitAI(){
   stopObserving();stopVideoFrames();stopLiveMic();Eyes.stopTalkWatch();flushAudio();
+  if(recorder&&recorder.state==="recording")try{recorder.stop();}catch(_){}
   if(Live.ws){try{Live.ws.close(1000);}catch(_){}}Live.ws=null;Live.connected=false;
-  stopCam();hideHud();
+  stopCam();hideHud();hideMediaPreview();
   Eyes.setExpr("normal");Eyes.setPupil(0,0);
   $("hudMic").classList.remove("mic-live");
+  $("hudRec").classList.remove("rec-active");
   showScreen("ctrlScreen");
 }
 
@@ -1093,14 +1252,14 @@ function init(){
   $("goAiBtn").addEventListener("click",enterAI);
 
   // AI HUD
-  $("face").addEventListener("click",e=>{if(!e.target.closest(".hud-btn"))toggleHud();});
+  $("face").addEventListener("click",e=>{if(!e.target.closest(".hud-btn")&&!e.target.closest(".media-overlay"))toggleHud();});
   $("hudMic").addEventListener("click",e=>{e.stopPropagation();toggleLiveMic();showHud();});
-  $("hudCam").addEventListener("click",e=>{e.stopPropagation();
-    if(camStream){stopCam();stopVideoFrames();}
-    else{startCam($("aiVideo")).then(()=>{if(Live.connected)startVideoFrames();});}
-    showHud();
-  });
+  $("hudFlip").addEventListener("click",e=>{e.stopPropagation();aiFlipCam();showHud();});
+  $("hudPhoto").addEventListener("click",e=>{e.stopPropagation();capturePhoto();showHud();});
+  $("hudRec").addEventListener("click",e=>{e.stopPropagation();toggleRecording();showHud();});
   $("hudExit").addEventListener("click",e=>{e.stopPropagation();exitAI();});
+  $("mediaClose").addEventListener("click",hideMediaPreview);
+  $("mediaOverlay").addEventListener("click",e=>{if(e.target===$("mediaOverlay"))hideMediaPreview();});
 
   console.log("[app] ready");
 }
