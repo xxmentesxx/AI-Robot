@@ -377,7 +377,7 @@ const $=id=>document.getElementById(id);
 /* ============ CONFIG ============ */
 const CFG={
   apiVersion:"v1beta",
-  model:"gemini-2.0-flash-live-001",
+  model:"gemini-3.1-flash-live-preview",
   voice:"Aoede",
   lang:"tr-TR",
   videoFps:1,
@@ -721,8 +721,12 @@ function connectLive(){
   ws.onerror=()=>console.error("[ws] error event");
   ws.onclose=e=>{
     Live.connected=false;stopLiveMic();stopVideoFrames();Eyes.stopTalkWatch();
-    if(e.code!==1000){Eyes.setExpr("dead");console.error("[ws] closed",e.code,e.reason);}
-    else Eyes.setExpr("sleepy");
+    if(e.code!==1000){
+      Eyes.setExpr("dead");
+      console.error("[ws] closed",e.code,e.reason);
+      $("txBot").textContent="⚠️ Bağlantı hatası: "+e.code+" "+(e.reason||"")+" — model: "+CFG.model;
+      $("txBot").classList.add("visible");
+    } else Eyes.setExpr("sleepy");
     $("hudMic").classList.remove("mic-live");
   };
 }
