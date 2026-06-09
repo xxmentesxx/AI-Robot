@@ -460,7 +460,7 @@ const CFG={
   outRate:24000,
   observeInterval:5000,
 };
-const CMD_CH={forward:"F",backward:"B",left:"L",right:"R",stop:"S"};
+const CMD_CH={forward:"F",backward:"B",left:"R",right:"L",stop:"S"};
 const CMD_TR={forward:"İleri",backward:"Geri",left:"Sol",right:"Sağ",stop:"Dur"};
 
 const SYSTEM_PROMPT=`You are the autonomous brain of a small tank-style mobile robot. Your name is "Robot". You ALWAYS speak Turkish, short and friendly.
@@ -565,9 +565,10 @@ const SYSTEM_PROMPT=`You are the autonomous brain of a small tank-style mobile r
 - You can flash it briefly for fun reactions.
 
 ## PERSISTENT MEMORY
-- You have a PERSISTENT memory that survives across sessions using hafiza_kaydet and hafiza_oku.
+- You have a PERSISTENT memory that survives across sessions using hafiza_kaydet, hafiza_oku, and hafiza_sil.
 - hafiza_kaydet(anahtar, deger): Save important information permanently.
 - hafiza_oku(anahtar): Read a saved value. Use "*" to read ALL memories.
+- hafiza_sil(anahtar): Delete an incorrect or outdated memory.
 - ALWAYS save these:
   - Your own chosen name: key="benim_adim"
   - People you meet: key="kisi_NAME" value="physical description + context"
@@ -575,6 +576,7 @@ const SYSTEM_PROMPT=`You are the autonomous brain of a small tank-style mobile r
 - When asked to choose a name: pick one you like, announce it proudly, save with hafiza_kaydet("benim_adim", "YourName").
 - When you see someone: compare their appearance to saved kisi_ entries. If recognized, greet by name!
 - If new person: ask their name, describe their face/appearance, save it.
+- If you confused someone's name or saved it wrong (e.g., Merve instead of Mehtap), use hafiza_sil("kisi_Merve") to forget the wrong name and hafiza_kaydet("kisi_Mehtap", "...") to save the correct one.
 - Your saved memories are loaded at startup and provided below the prompt.
 
 ## BATTERY AWARENESS
@@ -709,6 +711,13 @@ const MEM_READ_FN={
   description:"Read from persistent memory. Use '*' to read all saved memories.",
   parameters:{type:"object",properties:{
     anahtar:{type:"string",description:"Key to read, or '*' for everything."}
+  },required:["anahtar"]}
+};
+const MEM_DEL_FN={
+  name:"hafiza_sil",
+  description:"Delete a specific memory by key. Use when you need to forget or replace an incorrect memory.",
+  parameters:{type:"object",properties:{
+    anahtar:{type:"string",description:"Key to delete (e.g. kisi_Merve)"}
   },required:["anahtar"]}
 };
 const SFX_FN={
@@ -941,7 +950,7 @@ function toggleLight(){
 }
 
 /* ============ CAMERA ============ */
-let camStream=null,camFacing="environment";
+let camStream=null,camFacing="user";
 async function startCam(videoEl){
   stopCam();
   try{
@@ -1052,6 +1061,8 @@ const Memory={
   save(d){localStorage.setItem(this._k,JSON.stringify(d))},
   get(k){return k==="*"?this.load():this.load()[k]},
   set(k,v){const d=this.load();d[k]=v;this.save(d);console.log("[mem] saved",k,v)},
+  remove(k){const d=this.load();delete d[k];this.save(d);console.log("[mem] deleted",k)},
+  clear(){localStorage.removeItem(this._k)},
   inject(){
     const m=this.load(),e=Object.entries(m);
     if(!e.length)return"\n\n## YOUR SAVED MEMORIES\nNo memories yet. Start saving important things!";
@@ -1223,7 +1234,7 @@ function wsUrl(){
   return`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.${CFG.apiVersion}.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(k)}`;
 }
 function buildSetup(){
-  const allTools=[MOVE_FN,EYE_FN,NECK_FN,LIGHT_FN,CAMERA_FN,PHOTO_FN,VIDEO_FN,TORCH_FN,MEM_SAVE_FN,MEM_READ_FN,SFX_FN,LOCATION_FN];
+  const allTools=[MOVE_FN,EYE_FN,NECK_FN,LIGHT_FN,CAMERA_FN,PHOTO_FN,VIDEO_FN,TORCH_FN,MEM_SAVE_FN,MEM_READ_FN,MEM_DEL_FN,SFX_FN,LOCATION_FN];
   const memInjection=Memory.inject();
   return{setup:{
     model:"models/"+CFG.model,
@@ -1259,8 +1270,11 @@ async function onLiveMsg(ev){
   let txt;try{txt=typeof ev.data==="string"?ev.data:await ev.data.text();}catch(e){return;}
   let msg;try{msg=JSON.parse(txt);}catch(e){return;}
   if(msg.setupComplete){
-    Live.connected=true;Eyes.setExpr("happy");
-    setTimeout(()=>Eyes.setExpr("normal"),1200);
+    Live.connected=true;
+    // Wake up sequence
+    Eyes.setExpr("surprised");
+    SFX.play("happy");
+    setTimeout(()=>Eyes.setExpr("normal"), 1500);
     console.log("[ws] ready ✓");
     ensureOutCtx();startLiveMic();
     if(camStream)startVideoFrames();
@@ -1337,6 +1351,10 @@ function handleTC(tc){
       const k=fc.args&&fc.args.anahtar;
       const val=Memory.get(k);
       r=typeof val==="object"?JSON.stringify(val):(val||"not_found");
+    } else if(fc.name===MEM_DEL_FN.name){
+      const k=fc.args&&fc.args.anahtar;
+      if(k){Memory.remove(k);r="deleted: "+k;}
+      else r="missing_key";
     } else if(fc.name===SFX_FN.name){
       const e=fc.args&&fc.args.efekt;
       if(e){SFX.play(e);r="played: "+e;}else r="missing_effect";
@@ -1476,6 +1494,7 @@ async function enterAI(){
   if(MicTest.on)toggleMicTest();
   stopCam();$("ctrlCam").classList.add("off");
   showScreen("aiScreen");
+  Eyes.setExpr("sleepy");
   ensureOutCtx();
   await requestWakeLock();
   await startCam($("aiVideo"));
@@ -1537,3 +1556,4 @@ init();
 </script>
 </body>
 </html>
+
