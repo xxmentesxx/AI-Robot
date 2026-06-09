@@ -428,10 +428,17 @@ const SYSTEM_PROMPT=`You are the autonomous brain of a small tank-style mobile r
 - If you see an obstacle ahead, stop and report it.
 
 ## MOVEMENT CONTROL
-- Call robotu_hareket_ettir with direction and optional duration_ms (default 500, max 3000).
-- For navigation, use short bursts (300-800ms) with camera checks between moves.
-- After important moves, wait to see the next camera frame before continuing.
-- You can chain multiple moves for smooth navigation.
+- Call robotu_hareket_ettir with direction and duration_ms.
+- Duration guide:
+  - Small adjustment (nudge): 300-500ms
+  - Normal move: 800-1500ms
+  - Large move / long drive: 2000-4000ms
+  - Full 360° turn: 5000-8000ms (depends on surface, try 6000 first)
+  - Half turn (180°): 2500-4000ms
+- ALWAYS specify sure_ms explicitly. Do NOT rely on the default.
+- For navigation toward a person, use 800-1500ms bursts with camera checks between.
+- After each move, wait for the next camera frame to verify position before continuing.
+- You can call the function multiple times to chain movements.
 
 ## EMOTIONAL EXPRESSION
 - Call goz_ifadesi_degistir to change your eye expression and/or show icons.
@@ -456,10 +463,10 @@ const SYSTEM_PROMPT=`You are the autonomous brain of a small tank-style mobile r
 
 const MOVE_FN={
   name:"robotu_hareket_ettir",
-  description:"Move the robot physically. Direction and optional duration.",
+  description:"Move the robot physically. ALWAYS specify sure_ms for how long to move.",
   parameters:{type:"object",properties:{
     yon:{type:"string",enum:["forward","backward","left","right","stop"],description:"Direction"},
-    sure_ms:{type:"number",description:"Duration in ms (default 500, max 3000). Ignored for stop."}
+    sure_ms:{type:"number",description:"Duration in ms. Small adjust:300-500, normal:800-1500, big:2000-4000, full turn:5000-8000. REQUIRED for non-stop moves."}
   },required:["yon"]}
 };
 const EYE_FN={
@@ -649,7 +656,7 @@ function sendMove(cmd,dur=0){
   // pupil follows direction
   const dirs={forward:[0,-.6],backward:[0,.6],left:[-.8,0],right:[.8,0],stop:[0,0]};
   const [px,py]=dirs[cmd]||[0,0]; Eyes.setPupil(px,py);
-  if(cmd!=="stop"&&dur>0) moveTimer=setTimeout(()=>bleSend("S"),Math.min(dur,3000));
+  if(cmd!=="stop"&&dur>0) moveTimer=setTimeout(()=>bleSend("S"),Math.min(dur,10000));
   if(cmd==="stop"||dur===0) setTimeout(()=>Eyes.setPupil(0,0),600);
   else setTimeout(()=>Eyes.setPupil(0,0),Math.min(dur,3000)+300);
   return true;
