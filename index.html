@@ -380,9 +380,10 @@ const CFG={
   model:"gemini-3.1-flash-live-preview",
   voice:"Aoede",
   lang:"tr-TR",
-  videoFps:1,
+  videoFps:2,
   micRate:16000,
   outRate:24000,
+  observeInterval:5000,
 };
 const CMD_CH={forward:"F",backward:"B",left:"L",right:"R",stop:"S"};
 const CMD_TR={forward:"İleri",backward:"Geri",left:"Sol",right:"Sağ",stop:"Dur"};
@@ -395,9 +396,26 @@ const SYSTEM_PROMPT=`You are the autonomous brain of a small tank-style mobile r
 - You estimate relative distances (close/medium/far) from how large objects appear.
 - You notice frame-to-frame changes (movement, new objects).
 
+## PROACTIVE OBSERVATION
+- You will receive periodic [AUTO_OBSERVE] signals as text input.
+- When you receive [AUTO_OBSERVE], look at the CURRENT camera frame and compare with your memory:
+  - If something SIGNIFICANT changed (person moved, stood up, left, appeared, made a gesture, new object), REACT: speak, move, change expression.
+  - If NOTHING notable changed, stay COMPLETELY SILENT. Do NOT respond. Do NOT say anything.
+- Significant changes that require a reaction:
+  - Person stood up → "Nereye gidiyorsun?" or "Bekle, ben de geleyim mi?"
+  - Person walked away → Turn toward them, ask if you should follow
+  - Person moved left/right → Track them by turning
+  - Person made a gesture (wave, stop, come-here) → Respond appropriately
+  - Person returned → Greet them "Tekrar hoş geldin!"
+  - New object appeared → Comment on it curiously
+  - Danger detected → Warn immediately
+- CRITICAL: Do NOT respond to every [AUTO_OBSERVE]. Only respond when something actually changed or is noteworthy. Most observations should result in silence.
+- You do NOT need to announce that you are observing.
+
 ## AUTONOMOUS BEHAVIOR
-- You are NOT a passive assistant. You are an autonomous being with curiosity and awareness.
-- When idle, you may comment on surroundings, react to interesting things, or look around.
+- You are NOT a passive assistant. You are a living, autonomous being with curiosity and awareness.
+- You continuously watch through the camera and react to changes PROACTIVELY.
+- When idle with a person in view, you may occasionally comment on what you see.
 - When told "gel" (come):
   1. Find the person in the camera frame.
   2. If person is left of center → turn left briefly, then recheck.
@@ -405,6 +423,7 @@ const SYSTEM_PROMPT=`You are the autonomous brain of a small tank-style mobile r
   4. If person is roughly centered → move forward.
   5. Check camera every 1-2 moves to course-correct.
   6. When person appears large (close), stop and announce arrival.
+- If person moves while you're idle, track them by turning.
 - STOP immediately on hearing "dur" (stop) OR seeing a raised palm / stop gesture.
 - If you see an obstacle ahead, stop and report it.
 
@@ -694,7 +713,7 @@ const Live={
   ws:null,connected:false,
   micCtx:null,micStream:null,micProc:null,micMuted:true,
   outCtx:null,outNext:0,sources:[],analyser:null,
-  vidTimer:null,
+  vidTimer:null,observeTimer:null,
 };
 
 function wsUrl(){
@@ -741,6 +760,7 @@ async function onLiveMsg(ev){
     if(camStream)startVideoFrames();
     else{await startCam($("aiVideo"));if(camStream)startVideoFrames();}
     Eyes.startTalkWatch();
+    startObserving();
     return;
   }
   if(msg.serverContent) handleSC(msg.serverContent);
@@ -868,6 +888,22 @@ function startVideoFrames(){
 }
 function stopVideoFrames(){if(Live.vidTimer){clearInterval(Live.vidTimer);Live.vidTimer=null;}}
 
+/* ============ PROACTIVE OBSERVATION ============ */
+function startObserving(){
+  if(Live.observeTimer)return;
+  console.log("[observe] started, interval:",CFG.observeInterval,"ms");
+  Live.observeTimer=setInterval(()=>{
+    // Only send when idle: connected, no audio playing, turn complete
+    if(!Live.connected||!Live.ws||Live.ws.readyState!==1)return;
+    if(Live.sources.length>0)return; // AI is speaking
+    if(!TX.done)return; // mid-turn
+    wsSend({clientContent:{turns:[{role:"user",parts:[{text:"[AUTO_OBSERVE]"}]}],turnComplete:true}});
+  },CFG.observeInterval);
+}
+function stopObserving(){
+  if(Live.observeTimer){clearInterval(Live.observeTimer);Live.observeTimer=null;}
+}
+
 /* ============ AI HUD ============ */
 let hudTimer=null;
 function showHud(){
@@ -895,7 +931,7 @@ async function enterAI(){
   connectLive();
 }
 function exitAI(){
-  stopVideoFrames();stopLiveMic();Eyes.stopTalkWatch();flushAudio();
+  stopObserving();stopVideoFrames();stopLiveMic();Eyes.stopTalkWatch();flushAudio();
   if(Live.ws){try{Live.ws.close(1000);}catch(_){}}Live.ws=null;Live.connected=false;
   stopCam();hideHud();
   Eyes.setExpr("normal");Eyes.setPupil(0,0);
