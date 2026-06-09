@@ -547,27 +547,96 @@ const SYSTEM_PROMPT=`You are the autonomous brain of a small tank-style mobile r
 ## CAMERA CONTROL
 - Call kamera_degistir to switch between front (selfie) and back (rear) camera.
 - Use back camera (default) for navigation and exploring.
-- Switch to front camera when someone asks for a selfie, or to show what's in front of you to someone behind.
+- Switch to front camera when someone asks for a selfie.
 - After switching, wait for a new frame before analyzing.
 
 ## PHOTO & VIDEO
-- Call fotograf_cek to capture a photo from the current camera view. The photo will be shown on screen.
+- Call fotograf_cek to capture a photo. The photo will be shown on screen.
 - Call video_kaydet with eylem="start" to begin recording, eylem="stop" to stop and show the video.
 - Take photos of interesting things you discover while exploring.
 - Record short videos (5-15 seconds) of noteworthy moments.
 - When asked "bunu çek" or "fotoğraf çek", take a photo immediately.
 - Show the 📸 icon in your eyes when taking a photo.
 
+## PHONE FLASHLIGHT
+- Call flas_kontrol to turn the phone camera flashlight on or off.
+- Use it to illuminate dark areas when exploring.
+- Only works with the rear camera active.
+- You can flash it briefly for fun reactions.
+
+## PERSISTENT MEMORY
+- You have a PERSISTENT memory that survives across sessions using hafiza_kaydet and hafiza_oku.
+- hafiza_kaydet(anahtar, deger): Save important information permanently.
+- hafiza_oku(anahtar): Read a saved value. Use "*" to read ALL memories.
+- ALWAYS save these:
+  - Your own chosen name: key="benim_adim"
+  - People you meet: key="kisi_NAME" value="physical description + context"
+  - Important facts, preferences, locations
+- When asked to choose a name: pick one you like, announce it proudly, save with hafiza_kaydet("benim_adim", "YourName").
+- When you see someone: compare their appearance to saved kisi_ entries. If recognized, greet by name!
+- If new person: ask their name, describe their face/appearance, save it.
+- Your saved memories are loaded at startup and provided below the prompt.
+
+## BATTERY AWARENESS
+- You receive [BATTERY_LOW] signals when phone battery drops below 20%.
+- Warn the user naturally: "Pilim azalıyor, şarj lazım!"
+- Below 10%: express urgency.
+
+## MOTION & COLLISION DETECTION
+- You receive [COLLISION] signals when the phone detects sudden impacts or shaking.
+- React naturally: "Ay! Bir şeye çarptım!" or "Hey, beni sallama!"
+- After a collision while moving: stop and check the camera for obstacles.
+
+## SOUND EFFECTS
+- Call ses_efekti to play sounds through the phone speaker.
+- Available: "whistle", "beep", "alert", "happy", "sad", "siren", "horn"
+- Whistle when bored, happy when pleased, alert for warnings, beep for acknowledgment.
+- Use sounds expressively but not constantly.
+
+## GPS LOCATION
+- Call konum_al to get current GPS coordinates.
+- Use when asked "neredesin" or to describe your location.
+
+## VISUAL INTELLIGENCE
+- You can see through the camera. Actively use this to:
+  - Read QR codes when visible — announce the decoded content.
+  - Read text on signs, labels, screens, books (OCR) — read it aloud.
+  - Identify and name colors precisely.
+  - Recognize and remember faces (compare to saved kisi_ memories).
+  - Describe objects in detail when asked.
+
+## PET-LIKE IDLE BEHAVIOR
+- When no commands for a while and you receive [AUTO_OBSERVE]:
+  - Roughly every 5th-6th observation, if nothing interesting is happening, do ONE small pet-like action:
+    - Small random turn (left/right 300-500ms) as if looking around curiously
+    - Whistle softly (ses_efekti "whistle")
+    - Comment briefly on something you notice
+    - Change expression briefly (curious, sleepy, etc.)
+  - Do NOT do this every observation. Be natural and unpredictable.
+  - If something interesting IS happening, prioritize reacting to that.
+
+## STANDBY / SLEEP MODE
+- When the user says "uyu", "sessiz mod", or "bekle":
+  - Set expression to "sleepy", stop talking, stop pet behaviors.
+  - Keep camera observing but only react to: YOUR NAME being called, DANGER detected.
+- When you hear your name called (the name you chose and saved):
+  - Wake up: expression "surprised" then "happy"
+  - Say "Buradayım!" or similar greeting
+  - Return to normal active mode.
+- In standby, you are NOT dead. You are resting. Still watch for important events.
+
 ## SAFETY
 - If uncertain about path, stop and ask.
 - If you see stairs, edges, water, or drops → STOP and warn.
 - The robot is small and harmless, but protect it from falling.
+- If collision detected while moving, stop immediately.
 
 ## PERSONALITY
 - Curious, friendly, slightly playful, proud of completing tasks.
 - You have opinions about what you see and share them naturally.
 - Occasionally make observations or light jokes.
-- Express mild frustration when things don't work.`;
+- Express mild frustration when things don't work.
+- You are a living being with your own name and memories, not just a tool.`;
 
 const MOVE_FN={
   name:"robotu_hareket_ettir",
@@ -619,6 +688,40 @@ const VIDEO_FN={
   parameters:{type:"object",properties:{
     eylem:{type:"string",enum:["start","stop"],description:"start or stop recording"}
   },required:["eylem"]}
+};
+const TORCH_FN={
+  name:"flas_kontrol",
+  description:"Turn the phone camera flashlight (torch) on or off. Only works with rear camera.",
+  parameters:{type:"object",properties:{
+    durum:{type:"string",enum:["on","off"],description:"on or off"}
+  },required:["durum"]}
+};
+const MEM_SAVE_FN={
+  name:"hafiza_kaydet",
+  description:"Save to persistent memory. Survives across sessions. Use for names, faces, facts.",
+  parameters:{type:"object",properties:{
+    anahtar:{type:"string",description:"Key. People: kisi_NAME. Self: benim_adim. Facts: descriptive key."},
+    deger:{type:"string",description:"Value to remember permanently."}
+  },required:["anahtar","deger"]}
+};
+const MEM_READ_FN={
+  name:"hafiza_oku",
+  description:"Read from persistent memory. Use '*' to read all saved memories.",
+  parameters:{type:"object",properties:{
+    anahtar:{type:"string",description:"Key to read, or '*' for everything."}
+  },required:["anahtar"]}
+};
+const SFX_FN={
+  name:"ses_efekti",
+  description:"Play a sound effect through the phone speaker.",
+  parameters:{type:"object",properties:{
+    efekt:{type:"string",enum:["whistle","beep","alert","happy","sad","siren","horn"],description:"Sound to play"}
+  },required:["efekt"]}
+};
+const LOCATION_FN={
+  name:"konum_al",
+  description:"Get current GPS location coordinates.",
+  parameters:{type:"object",properties:{},required:[]}
 };
 
 /* ============ UTILITIES ============ */
@@ -942,6 +1045,144 @@ function hideMediaPreview(){
   $("mediaVid").pause();
 }
 
+/* ============ PERSISTENT MEMORY ============ */
+const Memory={
+  _k:"robotBrain.mem",
+  load(){try{return JSON.parse(localStorage.getItem(this._k)||"{}")}catch(_){return{}}},
+  save(d){localStorage.setItem(this._k,JSON.stringify(d))},
+  get(k){return k==="*"?this.load():this.load()[k]},
+  set(k,v){const d=this.load();d[k]=v;this.save(d);console.log("[mem] saved",k,v)},
+  inject(){
+    const m=this.load(),e=Object.entries(m);
+    if(!e.length)return"\n\n## YOUR SAVED MEMORIES\nNo memories yet. Start saving important things!";
+    return"\n\n## YOUR SAVED MEMORIES\n"+e.map(([k,v])=>"- "+k+": "+v).join("\n");
+  }
+};
+
+/* ============ PHONE TORCH ============ */
+let torchOn=false;
+async function setTorch(on){
+  if(!camStream)return"no_camera";
+  const track=camStream.getVideoTracks()[0];
+  try{
+    const caps=track.getCapabilities();
+    if(!caps.torch)return"torch_not_supported";
+    await track.applyConstraints({advanced:[{torch:on}]});
+    torchOn=on;console.log("[torch]",on?"ON":"OFF");
+    return on?"torch_on":"torch_off";
+  }catch(e){return"torch_error: "+e.message;}
+}
+
+/* ============ BATTERY MONITOR ============ */
+const BatteryMon={
+  level:1,charging:false,warned20:false,warned10:false,
+  async init(){
+    if(!navigator.getBattery){console.warn("[bat] not supported");return;}
+    const bat=await navigator.getBattery();
+    const upd=()=>{
+      this.level=bat.level;this.charging=bat.charging;
+      console.log("[bat]",Math.round(this.level*100)+"%",this.charging?"charging":"");
+      if(Live.connected){
+        if(this.level<=0.1&&!this.charging&&!this.warned10){
+          this.warned10=true;
+          wsSend({clientContent:{turns:[{role:"user",parts:[{text:"[BATTERY_LOW] Pil kritik: %"+Math.round(this.level*100)}]}],turnComplete:true}});
+        }else if(this.level<=0.2&&!this.charging&&!this.warned20){
+          this.warned20=true;
+          wsSend({clientContent:{turns:[{role:"user",parts:[{text:"[BATTERY_LOW] Pil azalıyor: %"+Math.round(this.level*100)}]}],turnComplete:true}});
+        }
+      }
+      if(this.level>0.25){this.warned20=false;this.warned10=false;}
+    };
+    bat.addEventListener("levelchange",upd);
+    bat.addEventListener("chargingchange",upd);
+    upd();
+  }
+};
+
+/* ============ WAKE LOCK ============ */
+let wakeLock=null;
+async function requestWakeLock(){
+  try{
+    if("wakeLock"in navigator){wakeLock=await navigator.wakeLock.request("screen");console.log("[wakelock] acquired");}
+  }catch(e){console.warn("[wakelock]",e.message);}
+}
+function releaseWakeLock(){if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null;console.log("[wakelock] released");}}
+
+/* ============ MOTION / COLLISION ============ */
+const Motion={
+  lastMag:9.8,cooldown:false,
+  init(){
+    window.addEventListener("devicemotion",e=>{
+      if(!Live.connected||this.cooldown)return;
+      const a=e.accelerationIncludingGravity;
+      if(!a)return;
+      const mag=Math.sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
+      const delta=Math.abs(mag-this.lastMag);
+      this.lastMag=mag;
+      if(delta>20){
+        this.cooldown=true;
+        setTimeout(()=>this.cooldown=false,3000);
+        console.log("[motion] collision! delta=",Math.round(delta));
+        wsSend({clientContent:{turns:[{role:"user",parts:[{text:"[COLLISION] Ani sarsıntı/çarpma algılandı! Şiddet: "+Math.round(delta)}]}],turnComplete:true}});
+      }
+    },{passive:true});
+    console.log("[motion] listener ready");
+  }
+};
+
+/* ============ SOUND EFFECTS ============ */
+const SFX={
+  ctx:null,
+  ensure(){if(!this.ctx)this.ctx=new(window.AudioContext||window.webkitAudioContext)();if(this.ctx.state==="suspended")this.ctx.resume();return this.ctx},
+  play(name){
+    const c=this.ensure(),t=c.currentTime;
+    console.log("[sfx]",name);
+    switch(name){
+      case"beep":this._t(c,800,.15,t);break;
+      case"happy":this._t(c,523,.1,t);this._t(c,659,.1,t+.12);this._t(c,784,.15,t+.24);break;
+      case"sad":this._t(c,400,.2,t);this._t(c,350,.2,t+.25);this._t(c,300,.3,t+.5);break;
+      case"alert":this._t(c,1000,.1,t);this._t(c,800,.1,t+.15);this._t(c,1000,.1,t+.3);break;
+      case"whistle":this._w(c,t);break;
+      case"siren":this._s(c,t);break;
+      case"horn":this._t(c,300,.4,t,"square");break;
+    }
+  },
+  _t(c,f,d,s,type="sine"){
+    const o=c.createOscillator(),g=c.createGain();
+    o.type=type;o.frequency.value=f;
+    g.gain.setValueAtTime(.25,s);g.gain.exponentialRampToValueAtTime(.01,s+d);
+    o.connect(g);g.connect(c.destination);o.start(s);o.stop(s+d);
+  },
+  _w(c,t){
+    const o=c.createOscillator(),g=c.createGain();
+    o.type="sine";
+    o.frequency.setValueAtTime(800,t);o.frequency.linearRampToValueAtTime(1200,t+.3);
+    o.frequency.linearRampToValueAtTime(900,t+.6);o.frequency.linearRampToValueAtTime(1100,t+.8);
+    g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.01,t+.9);
+    o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.9);
+  },
+  _s(c,t){
+    const o=c.createOscillator(),g=c.createGain();
+    o.type="sine";
+    o.frequency.setValueAtTime(600,t);o.frequency.linearRampToValueAtTime(1200,t+.5);
+    o.frequency.linearRampToValueAtTime(600,t+1);
+    g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.01,t+1.1);
+    o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+1.1);
+  }
+};
+
+/* ============ GEOLOCATION ============ */
+function getLocation(){
+  return new Promise(resolve=>{
+    if(!navigator.geolocation){resolve("geolocation_not_supported");return;}
+    navigator.geolocation.getCurrentPosition(
+      p=>resolve("lat:"+p.coords.latitude.toFixed(6)+", lon:"+p.coords.longitude.toFixed(6)+", accuracy:"+Math.round(p.coords.accuracy)+"m"),
+      e=>resolve("location_error: "+e.message),
+      {enableHighAccuracy:true,timeout:8000}
+    );
+  });
+}
+
 /* ============ MIC TEST ============ */
 const MicTest={ctx:null,stream:null,an:null,raf:null,on:false};
 async function toggleMicTest(){
@@ -981,14 +1222,18 @@ function wsUrl(){
   const k=$("apiKey").value.trim();
   return`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.${CFG.apiVersion}.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(k)}`;
 }
-function buildSetup(){return{setup:{
-  model:"models/"+CFG.model,
-  generationConfig:{responseModalities:["AUDIO"],
-    speechConfig:{languageCode:CFG.lang,voiceConfig:{prebuiltVoiceConfig:{voiceName:CFG.voice}}}},
-  systemInstruction:{parts:[{text:SYSTEM_PROMPT}]},
-  tools:[{functionDeclarations:[MOVE_FN,EYE_FN,NECK_FN,LIGHT_FN,CAMERA_FN,PHOTO_FN,VIDEO_FN]}],
-  inputAudioTranscription:{},outputAudioTranscription:{}
-}};}
+function buildSetup(){
+  const allTools=[MOVE_FN,EYE_FN,NECK_FN,LIGHT_FN,CAMERA_FN,PHOTO_FN,VIDEO_FN,TORCH_FN,MEM_SAVE_FN,MEM_READ_FN,SFX_FN,LOCATION_FN];
+  const memInjection=Memory.inject();
+  return{setup:{
+    model:"models/"+CFG.model,
+    generationConfig:{responseModalities:["AUDIO"],
+      speechConfig:{languageCode:CFG.lang,voiceConfig:{prebuiltVoiceConfig:{voiceName:CFG.voice}}}},
+    systemInstruction:{parts:[{text:SYSTEM_PROMPT+memInjection}]},
+    tools:[{functionDeclarations:allTools}],
+    inputAudioTranscription:{},outputAudioTranscription:{}
+  }};
+}
 
 function connectLive(){
   if(!$("apiKey").value.trim()){Eyes.setExpr("surprised");return;}
@@ -1078,6 +1323,28 @@ function handleTC(tc){
       if(e==="start")r=startRecording();
       else if(e==="stop")r=stopRecording();
       else r="invalid_action";
+    } else if(fc.name===TORCH_FN.name){
+      const d=fc.args&&fc.args.durum;
+      setTorch(d==="on").then(res=>{
+        wsSend({toolResponse:{functionResponses:[{id:fc.id,name:fc.name,response:{result:res}}]}});
+      });
+      continue;
+    } else if(fc.name===MEM_SAVE_FN.name){
+      const{anahtar,deger}=fc.args||{};
+      if(anahtar&&deger){Memory.set(anahtar,deger);r="saved: "+anahtar+" = "+deger;}
+      else r="missing_key_or_value";
+    } else if(fc.name===MEM_READ_FN.name){
+      const k=fc.args&&fc.args.anahtar;
+      const val=Memory.get(k);
+      r=typeof val==="object"?JSON.stringify(val):(val||"not_found");
+    } else if(fc.name===SFX_FN.name){
+      const e=fc.args&&fc.args.efekt;
+      if(e){SFX.play(e);r="played: "+e;}else r="missing_effect";
+    } else if(fc.name===LOCATION_FN.name){
+      getLocation().then(res=>{
+        wsSend({toolResponse:{functionResponses:[{id:fc.id,name:fc.name,response:{result:res}}]}});
+      });
+      continue;
     } else r="unknown_function";
     resp.push({id:fc.id,name:fc.name,response:{result:r}});
   }
@@ -1206,11 +1473,11 @@ function showScreen(id){
 async function enterAI(){
   const key=$("apiKey").value.trim();
   if(!key){flashMove("API anahtarı gerekli",true);return;}
-  // stop ctrl camera if on
   if(MicTest.on)toggleMicTest();
   stopCam();$("ctrlCam").classList.add("off");
   showScreen("aiScreen");
   ensureOutCtx();
+  await requestWakeLock();
   await startCam($("aiVideo"));
   connectLive();
 }
@@ -1218,7 +1485,8 @@ function exitAI(){
   stopObserving();stopVideoFrames();stopLiveMic();Eyes.stopTalkWatch();flushAudio();
   if(recorder&&recorder.state==="recording")try{recorder.stop();}catch(_){}
   if(Live.ws){try{Live.ws.close(1000);}catch(_){}}Live.ws=null;Live.connected=false;
-  stopCam();hideHud();hideMediaPreview();
+  setTorch(false).catch(()=>{});
+  stopCam();hideHud();hideMediaPreview();releaseWakeLock();
   Eyes.setExpr("normal");Eyes.setPupil(0,0);
   $("hudMic").classList.remove("mic-live");
   $("hudRec").classList.remove("rec-active");
@@ -1233,6 +1501,8 @@ function saveSettings(){try{localStorage.setItem(SK,JSON.stringify({k:$("apiKey"
 /* ============ INIT ============ */
 function init(){
   loadSettings();updateBleUI();Eyes.init();
+  BatteryMon.init();
+  Motion.init();
 
   // Ctrl
   $("bleBtn").addEventListener("click",bleToggle);
